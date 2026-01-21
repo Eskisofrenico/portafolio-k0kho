@@ -43,6 +43,12 @@ export default function Footer() {
                             FranciscoDev
                         </a>
                     </p>
+                    <a
+                        href="/admin"
+                        className="inline-block mt-2 text-text/30 hover:text-accent text-xs transition-colors"
+                    >
+                        administrativo
+                    </a>
                 </div>
             </div>
         </footer>

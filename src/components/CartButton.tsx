@@ -3,10 +3,13 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useCurrency } from '@/context/CurrencyContext';
-import services from '@/data/services.json';
-import extras from '@/data/extras.json';
-import rules from '@/data/rules.json';
+import { useServices } from '@/hooks/useServices';
+import { useExtras } from '@/hooks/useExtras';
+import { useRules } from '@/hooks/useRules';
+import { useVariants } from '@/hooks/useVariants';
+import { useCommissionThemes } from '@/hooks/useCommissionThemes';
 import type { SelectedCommission } from '@/types';
+import type { Service as SupabaseService, Extra as SupabaseExtra, Rule, ServiceVariant, CommissionTheme } from '@/lib/supabase';
 
 interface Extra {
     id: string;
@@ -36,6 +39,35 @@ interface CartButtonProps {
 
 export default function CartButton({ selectedCommissions, onRemoveCommission, onClearCart }: CartButtonProps) {
     const { formatPrice } = useCurrency();
+    const { services: supabaseServices } = useServices();
+    const { extras: supabaseExtras } = useExtras();
+    const { rules: rulesData } = useRules();
+    const { variants: allVariants } = useVariants(); // Obtener todas las variantes
+    const { themes } = useCommissionThemes();
+    
+    // Convertir servicios de Supabase al formato esperado
+    const typedServices: Service[] = supabaseServices.map((s: SupabaseService) => ({
+        id: s.id,
+        title: s.title,
+        priceCLP: s.price_clp_min,
+        priceUSD: s.price_usd_min,
+    }));
+
+    // Convertir extras de Supabase al formato esperado
+    const typedExtras: Extra[] = supabaseExtras.map((e: SupabaseExtra) => ({
+        id: e.id,
+        title: e.title,
+        icon: e.icon,
+        priceCLP: e.price_clp,
+        priceUSD: e.price_usd,
+    }));
+
+    // Convertir reglas de Supabase al formato esperado
+    const typedRules: RuleItem[] = [
+        ...rulesData.allowed.map((r: Rule) => ({ text: r.text, icon: r.icon })),
+        ...rulesData.forbidden.map((r: Rule) => ({ text: r.text, icon: r.icon })),
+    ];
+
     const [isOpen, setIsOpen] = useState(false);
     const [isRulesOpen, setIsRulesOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
@@ -96,9 +128,6 @@ export default function CartButton({ selectedCommissions, onRemoveCommission, on
     const buildWhatsAppLink = () => {
         if (selectedCommissions.length === 0) return '#';
 
-        const typedExtras = extras as Extra[];
-        const typedServices = services as Service[];
-
         const lines: string[] = [
             'Hola k0kho!',
             `Vengo de tu web. Me interesa ${selectedCommissions.length > 1 ? 'las siguientes comisiones' : 'una comision'}:`,
@@ -113,6 +142,20 @@ export default function CartButton({ selectedCommissions, onRemoveCommission, on
 
             lines.push(`[${index + 1}] ${service.title}`);
             lines.push('');
+
+            if (commission.detailLevel) {
+                const levelLabel = commission.detailLevel.charAt(0).toUpperCase() + commission.detailLevel.slice(1);
+                lines.push(`Nivel de Detalle: ${levelLabel}`);
+                lines.push('');
+            }
+
+            if (commission.variantId) {
+                const variant = allVariants.find(v => v.id === commission.variantId);
+                if (variant) {
+                    lines.push(`Variante: ${variant.variant_label}`);
+                    lines.push('');
+                }
+            }
 
             if (commission.extras.length > 0) {
                 const selectedExtrasList = commission.extras
@@ -184,7 +227,7 @@ export default function CartButton({ selectedCommissions, onRemoveCommission, on
     };
 
     const handleDeleteClick = (commission: SelectedCommission) => {
-        const service = (services as Service[]).find(s => s.id === commission.serviceId);
+        const service = typedServices.find(s => s.id === commission.serviceId);
         const title = service?.title || 'comisión';
         
         if (selectedCommissions.length === 1) {
@@ -198,6 +241,10 @@ export default function CartButton({ selectedCommissions, onRemoveCommission, on
         if (commissionToDelete) {
             onRemoveCommission(commissionToDelete.id);
             setCommissionToDelete(null);
+            
+            // Cerrar el modal del carrito después de eliminar
+            setCartActive(false);
+            window.setTimeout(() => setIsOpen(false), MODAL_MS);
         }
     };
 
@@ -316,7 +363,7 @@ export default function CartButton({ selectedCommissions, onRemoveCommission, on
                         ) : (
                             <div className="space-y-3 mb-6">
                                 {selectedCommissions.map((commission) => {
-                                    const service = (services as Service[]).find(s => s.id === commission.serviceId);
+                                    const service = typedServices.find(s => s.id === commission.serviceId);
                                     if (!service) return null;
                                     return (
                                         <div
@@ -348,16 +395,49 @@ export default function CartButton({ selectedCommissions, onRemoveCommission, on
                                             <p className="text-lg font-bold text-accent mb-1 pr-8">
                                                 {service.title}
                                             </p>
+                                            {commission.detailLevel && (
+                                                <div className="text-sm text-text/70 mb-2">
+                                                    <span className="inline-block bg-blue-100 text-blue-700 px-2 py-1 rounded font-medium capitalize">
+                                                        Nivel: {commission.detailLevel}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {commission.variantId && (() => {
+                                                const variant = allVariants.find(v => v.id === commission.variantId);
+                                                if (variant) {
+                                                    return (
+                                                        <div className="text-sm text-text/70 mb-2">
+                                                            <span className="inline-block bg-purple-100 text-purple-700 px-2 py-1 rounded font-medium">
+                                                                Variante: {variant.variant_label}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
                                             {commission.extras.length > 0 && (
                                                 <div className="text-sm text-text/70 mb-2">
                                                     <p className="mb-1 font-medium">Extras:</p>
                                                     <div className="flex flex-wrap gap-1">
-                                                        {(extras as Extra[]).filter(e => commission.extras.includes(e.id)).map((extra: Extra) => (
+                                                        {typedExtras.filter(e => commission.extras.includes(e.id)).map((extra: Extra) => (
                                                             <span key={extra.id} className="text-xs bg-accent/10 text-accent px-2 py-1 rounded">
                                                                 {extra.icon} {extra.title}
                                                             </span>
                                                         ))}
                                                     </div>
+                                                </div>
+                                            )}
+                                            {(commission.themeId || commission.customTheme) && (
+                                                <div className="text-sm text-text/70 mb-2">
+                                                    <span className="inline-block bg-purple-100 text-purple-700 px-2 py-1 rounded font-medium">
+                                                        {commission.themeId 
+                                                            ? (() => {
+                                                                const theme = themes.find((t: CommissionTheme) => t.id === commission.themeId);
+                                                                return theme ? `${theme.icon} ${theme.name}` : 'Tema';
+                                                            })()
+                                                            : `✨ ${commission.customTheme}`
+                                                        }
+                                                    </span>
                                                 </div>
                                             )}
                                             <p className="text-sm font-bold text-text/80">
@@ -453,9 +533,9 @@ export default function CartButton({ selectedCommissions, onRemoveCommission, on
                             <div className="rules-allowed rounded-2xl p-6">
                                 <h3 className="text-2xl text-center mb-4 text-green-dark">✅ Sí Dibujo</h3>
                                 <ul className="space-y-3">
-                                    {(rules.allowed as RuleItem[]).map((rule, index) => (
+                                    {rulesData.allowed.map((rule, index) => (
                                         <li
-                                            key={index}
+                                            key={rule.id || index}
                                             className="flex items-center gap-3 bg-white/60 rounded-xl p-3"
                                         >
                                             <span className="text-2xl">{rule.icon}</span>
@@ -468,9 +548,9 @@ export default function CartButton({ selectedCommissions, onRemoveCommission, on
                             <div className="rules-forbidden rounded-2xl p-6">
                                 <h3 className="text-2xl text-center mb-4 text-red-dark">❌ No Dibujo</h3>
                                 <ul className="space-y-3">
-                                    {(rules.forbidden as RuleItem[]).map((rule, index) => (
+                                    {rulesData.forbidden.map((rule, index) => (
                                         <li
-                                            key={index}
+                                            key={rule.id || index}
                                             className="flex items-center gap-3 bg-white/60 rounded-xl p-3"
                                         >
                                             <span className="text-2xl">{rule.icon}</span>

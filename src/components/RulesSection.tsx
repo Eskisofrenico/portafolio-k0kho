@@ -1,11 +1,6 @@
 'use client';
 
-import rules from '@/data/rules.json';
-
-interface Rule {
-    text: string;
-    icon: string;
-}
+import { useRules } from '@/hooks/useRules';
 
 interface RulesSectionProps {
     hasAcceptedRules: boolean;
@@ -13,6 +8,19 @@ interface RulesSectionProps {
 }
 
 export default function RulesSection({ hasAcceptedRules, onAcceptRules }: RulesSectionProps) {
+    const { rules, loading } = useRules();
+
+    if (loading) {
+        return (
+            <section className="py-12 px-4 animate-fade-in-delay-3" id="reglas">
+                <div className="max-w-4xl mx-auto text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--sketch-border)] mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Cargando reglas...</p>
+                </div>
+            </section>
+        );
+    }
+
     return (
         <section className="py-12 px-4 animate-fade-in-delay-3" id="reglas">
             <div className="max-w-4xl mx-auto">
@@ -32,9 +40,9 @@ export default function RulesSection({ hasAcceptedRules, onAcceptRules }: RulesS
                             ✅ Sí Dibujo
                         </h3>
                         <ul className="space-y-3">
-                            {(rules.allowed as Rule[]).map((rule, index) => (
+                            {rules.allowed.map((rule, index) => (
                                 <li
-                                    key={index}
+                                    key={rule.id || index}
                                     className="flex items-center gap-3 bg-white/50 rounded-xl p-3 hover:scale-105 transition-transform duration-300"
                                 >
                                     <span className="text-2xl animate-bounce">{rule.icon}</span>
@@ -50,9 +58,9 @@ export default function RulesSection({ hasAcceptedRules, onAcceptRules }: RulesS
                             ❌ No Dibujo
                         </h3>
                         <ul className="space-y-3">
-                            {(rules.forbidden as Rule[]).map((rule, index) => (
+                            {rules.forbidden.map((rule, index) => (
                                 <li
-                                    key={index}
+                                    key={rule.id || index}
                                     className="flex items-center gap-3 bg-white/50 rounded-xl p-3 hover:scale-105 transition-transform duration-300"
                                 >
                                     <span className="text-2xl grayscale hover:grayscale-0 transition-all">{rule.icon}</span>

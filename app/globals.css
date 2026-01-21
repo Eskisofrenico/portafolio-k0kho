@@ -40,6 +40,47 @@
 /* ============================================
    Fondo de Cuaderno (Grid Pattern)
    ============================================ */
+/* Selección de texto personalizada */
+::selection {
+  background-color: #E69A9A;
+  color: #2D3748;
+}
+
+::-moz-selection {
+  background-color: #E69A9A;
+  color: #2D3748;
+}
+
+/* Selección para el sidebar del admin - elementos no activos */
+aside nav a:not(.sidebar-active-item)::selection,
+aside nav a:not(.sidebar-active-item) *::selection {
+  background-color: #E69A9A !important;
+  color: #2D3748 !important;
+}
+
+aside nav a:not(.sidebar-active-item)::-moz-selection,
+aside nav a:not(.sidebar-active-item) *::-moz-selection {
+  background-color: #E69A9A !important;
+  color: #2D3748 !important;
+}
+
+/* Selección específica para el sidebar activo - MAYOR ESPECIFICIDAD */
+aside nav a.sidebar-active-item::selection,
+aside nav a.sidebar-active-item *::selection,
+aside nav a.sidebar-active-item span::selection {
+  background-color: #EC8B8B !important;
+  color: #FFFFFF !important;
+  text-shadow: none !important;
+}
+
+aside nav a.sidebar-active-item::-moz-selection,
+aside nav a.sidebar-active-item *::-moz-selection,
+aside nav a.sidebar-active-item span::-moz-selection {
+  background-color: #EC8B8B !important;
+  color: #FFFFFF !important;
+  text-shadow: none !important;
+}
+
 body {
   background-color: var(--paper-bg);
   color: var(--text-main);
@@ -385,6 +426,29 @@ h6 {
 ::-webkit-scrollbar-thumb {
   background: var(--accent);
   border-radius: 4px;
+}
+
+/* ============================================
+   Carrusel Infinito de Testimonios
+   ============================================ */
+@keyframes scroll-infinite {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(-100% / 3));
+  }
+}
+
+.animate-scroll-infinite {
+  animation: scroll-infinite linear infinite;
+  width: fit-content;
+  display: flex;
+  will-change: transform;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 ::-webkit-scrollbar-thumb:hover {

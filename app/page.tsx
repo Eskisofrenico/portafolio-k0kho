@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { CurrencyProvider } from '@/context/CurrencyContext';
 import Header from '@/components/Header';
 import Gallery from '@/components/Gallery';
+import TestimonialsSection from '@/components/TestimonialsSection';
+import AddTestimonialForm from '@/components/AddTestimonialForm';
 import Footer from '@/components/Footer';
 import CartButton from '@/components/CartButton';
 import type { SelectedCommission } from '@/types';
@@ -87,6 +89,12 @@ export default function Home() {
           onAddCommission={handleAddCommission}
           selectedCommissions={selectedCommissions}
         />
+
+        {/* Testimonios */}
+        <TestimonialsSection />
+
+        {/* Formulario para agregar testimonios */}
+        <AddTestimonialForm />
 
         <Footer />
       </div>

@@ -2,14 +2,17 @@
 
 import Image from 'next/image';
 import { useCurrency } from '@/context/CurrencyContext';
-import services from '@/data/services.json';
-import gallery from '@/data/gallery.json';
-import extras from '@/data/extras.json';
+import { useServices } from '@/hooks/useServices';
+import { useGallery } from '@/hooks/useGallery';
+import { useExtras } from '@/hooks/useExtras';
+import { useTestimonials } from '@/hooks/useTestimonials';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import CommissionModal from './CommissionModal';
 import Toast from './Toast';
 import type { SelectedCommission } from '@/types';
+import type { Service as SupabaseService, Extra as SupabaseExtra, GalleryItem } from '@/lib/supabase';
+import type { EmoteCustomization } from './EmoteCustomizationModal';
 
 interface GalleryProps {
     onAddCommission: (commission: SelectedCommission) => void;
@@ -45,9 +48,39 @@ interface Work {
 
 export default function Gallery({ onAddCommission, selectedCommissions }: GalleryProps) {
     const { formatPrice } = useCurrency();
-    const typedServices = services as Service[];
-    const typedGallery = gallery as Work[];
-    const typedExtras = extras as Extra[];
+    const { services: supabaseServices, loading: servicesLoading } = useServices();
+    const { gallery: supabaseGallery, loading: galleryLoading } = useGallery();
+    const { extras: supabaseExtras, loading: extrasLoading } = useExtras();
+
+    // Convertir servicios de Supabase al formato esperado
+    const typedServices: Service[] = supabaseServices.map((s: SupabaseService) => ({
+        id: s.id,
+        title: s.title,
+        image: s.image,
+        priceCLP: s.price_clp_min,
+        priceUSD: s.price_usd_min,
+        priceMaxCLP: s.price_clp_max,
+        priceMaxUSD: s.price_usd_max,
+        category: s.category,
+        description: s.description,
+    }));
+
+    // Convertir galería de Supabase al formato esperado
+    const typedGallery: Work[] = supabaseGallery.map((g: GalleryItem) => ({
+        id: g.id,
+        image: g.image_url,
+        title: g.title || 'Sin título',
+        type: g.service_type || 'General',
+        description: g.description,
+    }));
+
+    // Convertir extras de Supabase al formato esperado
+    const typedExtras: Extra[] = supabaseExtras.map((e: SupabaseExtra) => ({
+        id: e.id,
+        title: e.title,
+        priceCLP: e.price_clp,
+        priceUSD: e.price_usd,
+    }));
     const [selectedWork, setSelectedWork] = useState<Work | null>(null);
     const [selectedServiceForModal, setSelectedServiceForModal] = useState<Service | null>(null);
     const [mounted, setMounted] = useState(false);
@@ -56,6 +89,18 @@ export default function Gallery({ onAddCommission, selectedCommissions }: Galler
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    // Mostrar loading mientras se cargan los datos
+    if (servicesLoading || galleryLoading || extrasLoading) {
+        return (
+            <section className="py-4 md:py-12 px-4">
+                <div className="max-w-6xl mx-auto text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto"></div>
+                    <p className="mt-4 text-text/70">Cargando...</p>
+                </div>
+            </section>
+        );
+    }
 
     const openWorkModal = (work: Work) => {
         setSelectedWork(work);
@@ -77,24 +122,50 @@ export default function Gallery({ onAddCommission, selectedCommissions }: Galler
         document.body.style.overflow = 'unset';
     };
 
-    const handleConfirmCommission = (service: Service, selectedExtras: string[], showNotification?: () => void) => {
-        let totalCLP = service.priceCLP;
-        let totalUSD = service.priceUSD;
+    const handleConfirmCommission = (service: Service, selectedExtras: string[], detailLevel?: string, detailLevelPrice?: { clp: number; usd: number }, variantId?: string, variantPrice?: { clp: number; usd: number }, showNotification?: () => void, emotesCustomization?: EmoteCustomization[], themeId?: string, customTheme?: string) => {
+        // Usar precio del nivel de detalle si está seleccionado, sino usar precio base
+        let totalCLP = detailLevelPrice?.clp || service.priceCLP;
+        let totalUSD = detailLevelPrice?.usd || service.priceUSD;
 
-        selectedExtras.forEach(extraId => {
-            const extra = typedExtras.find(e => e.id === extraId);
-            if (extra) {
-                totalCLP += extra.priceCLP;
-                totalUSD += extra.priceUSD;
-            }
-        });
+        // Agregar precio de la variante si está seleccionada
+        if (variantPrice) {
+            totalCLP += variantPrice.clp;
+            totalUSD += variantPrice.usd;
+        }
+
+        // Para pack-emotes, calcular extras desde la personalización de cada emote
+        if (emotesCustomization && emotesCustomization.length > 0) {
+            emotesCustomization.forEach(emote => {
+                emote.extras.forEach(extraId => {
+                    const extra = typedExtras.find(e => e.id === extraId);
+                    if (extra) {
+                        totalCLP += extra.priceCLP;
+                        totalUSD += extra.priceUSD;
+                    }
+                });
+            });
+        } else {
+            // Para otros servicios, usar los extras seleccionados normalmente
+            selectedExtras.forEach(extraId => {
+                const extra = typedExtras.find(e => e.id === extraId);
+                if (extra) {
+                    totalCLP += extra.priceCLP;
+                    totalUSD += extra.priceUSD;
+                }
+            });
+        }
 
         onAddCommission({
             id: Date.now().toString(),
             serviceId: service.id,
+            detailLevel: detailLevel,
+            variantId: variantId,
             extras: selectedExtras,
             totalPriceCLP: totalCLP,
             totalPriceUSD: totalUSD,
+            emotesCustomization: emotesCustomization,
+            themeId: themeId,
+            customTheme: customTheme,
         });
 
         // Mostrar notificación
@@ -224,7 +295,9 @@ export default function Gallery({ onAddCommission, selectedCommissions }: Galler
                     service={selectedServiceForModal}
                     isOpen={!!selectedServiceForModal}
                     onClose={closeCommissionModal}
-                    onConfirm={(extras, showNotification) => handleConfirmCommission(selectedServiceForModal, extras, showNotification)}
+                    onConfirm={(extras, detailLevel, detailLevelPrice, variantId, variantPrice, showNotification, emotesCustomization, themeId, customTheme) => {
+                        handleConfirmCommission(selectedServiceForModal, extras, detailLevel, detailLevelPrice, variantId, variantPrice, showNotification, emotesCustomization, themeId, customTheme);
+                    }}
                 />
             )}
 
@@ -271,6 +344,10 @@ export default function Gallery({ onAddCommission, selectedCommissions }: Galler
                                 <p className="text-text/80 leading-relaxed text-lg mb-6">
                                     {selectedWork.description || "Sin descripción disponible."}
                                 </p>
+                                
+                                {/* Testimonios Relacionados */}
+                                <WorkTestimonials workId={selectedWork.id} />
+                                
                                 <div className="mt-auto pt-6 border-t border-dashed border-gray-300">
                                     <button
                                         onClick={closeWorkModal}
@@ -286,5 +363,53 @@ export default function Gallery({ onAddCommission, selectedCommissions }: Galler
                 document.body
             )}
         </section>
+    );
+}
+
+function WorkTestimonials({ workId }: { workId: string }) {
+    const { testimonials, loading } = useTestimonials(false, undefined, workId);
+
+    if (loading || testimonials.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className="mb-6">
+            <h4 className="font-bold text-text mb-3 flex items-center gap-2">
+                <span>⭐</span>
+                Comentarios de clientes
+            </h4>
+            <div className="space-y-3 max-h-48 overflow-y-auto">
+                {testimonials.map((testimonial) => (
+                    <div key={testimonial.id} className="card-sketch bg-washi/30 p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="font-bold text-sm text-text">
+                                {testimonial.client_name}
+                            </span>
+                            <div className="flex gap-0.5">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                    <svg
+                                        key={star}
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className={`h-3 w-3 ${
+                                            star <= testimonial.rating
+                                                ? 'text-yellow-400 fill-current'
+                                                : 'text-gray-300'
+                                        }`}
+                                        viewBox="0 0 20 20"
+                                        fill="currentColor"
+                                    >
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                ))}
+                            </div>
+                        </div>
+                        <p className="text-xs text-text/80 italic">
+                            "{testimonial.comment}"
+                        </p>
+                    </div>
+                ))}
+            </div>
+        </div>
     );
 }

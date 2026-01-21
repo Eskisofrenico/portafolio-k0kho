@@ -1,24 +1,12 @@
 'use client';
 
 import { useCurrency } from '@/context/CurrencyContext';
-import services from '@/data/services.json';
-import extras from '@/data/extras.json';
+import { useServices } from '@/hooks/useServices';
+import { useExtras } from '@/hooks/useExtras';
+import { useDetailLevels } from '@/hooks/useDetailLevels';
+import { useVariants } from '@/hooks/useVariants';
+import { useCommissionThemes } from '@/hooks/useCommissionThemes';
 import type { SelectedCommission } from '@/types';
-
-interface Extra {
-    id: string;
-    title: string;
-    icon: string;
-    priceCLP: number;
-    priceUSD: number;
-}
-
-interface Service {
-    id: string;
-    title: string;
-    priceCLP: number;
-    priceUSD: number;
-}
 
 interface WhatsAppButtonProps {
     isEnabled: boolean;
@@ -27,6 +15,11 @@ interface WhatsAppButtonProps {
 
 export default function WhatsAppButton({ isEnabled, selectedCommissions }: WhatsAppButtonProps) {
     const { formatPrice } = useCurrency();
+    const { services } = useServices();
+    const { extras } = useExtras();
+    const { themes } = useCommissionThemes();
+    const { detailLevels } = useDetailLevels(); // Obtener todos los niveles
+    const { variants } = useVariants(); // Obtener todas las variantes
 
     // Número de WhatsApp
     const phoneNumber = '56976420228';
@@ -44,41 +37,100 @@ export default function WhatsAppButton({ isEnabled, selectedCommissions }: Whats
         if (selectedCommissions.length === 0) return '#';
 
         let message = [
-            "Hola k0kho! 👋",
-            `Vengo de tu web. Me interesa ${selectedCommissions.length > 1 ? 'las siguientes comisiones' : 'una comisión'}:`,
+            "Hola k0kho!",
+            `Vengo de tu web. Me interesa ${selectedCommissions.length > 1 ? 'las siguientes comisiones' : 'una comision'}:`,
             ""
         ];
 
         // Listar cada comisión
         selectedCommissions.forEach((commission, index) => {
-            const service = (services as Service[]).find(s => s.id === commission.serviceId);
+            const service = services.find(s => s.id === commission.serviceId);
             if (service) {
                 message.push(`${index + 1}. ${service.title}`);
                 
-                if (commission.extras.length > 0) {
-                    const typedExtras = extras as Extra[];
-                    const selectedExtrasList = commission.extras.map((extraId: string) => {
-                        const extra = typedExtras.find(e => e.id === extraId);
-                        return extra ? `${extra.icon} ${extra.title}` : null;
-                    }).filter(Boolean);
-
-                    if (selectedExtrasList.length > 0) {
-                        message.push("   Extras:");
-                        selectedExtrasList.forEach(extra => {
-                            message.push(`   • ${extra}`);
-                        });
+                // Calcular precio base
+                let basePriceCLP = 0;
+                let basePriceUSD = 0;
+                let basePriceLabel = '';
+                
+                // Nivel de detalle (tiene precio)
+                if (commission.detailLevel) {
+                    const level = detailLevels.find(l => l.service_id === commission.serviceId && l.level_name === commission.detailLevel);
+                    if (level) {
+                        basePriceCLP = level.price_clp;
+                        basePriceUSD = level.price_usd;
+                        basePriceLabel = level.level_label;
+                        message.push(`   ${basePriceLabel}: ${formatPrice(basePriceCLP, basePriceUSD)}`);
+                    } else {
+                        // Fallback: usar precio base del servicio
+                        basePriceCLP = service.price_clp_min || 0;
+                        basePriceUSD = service.price_usd_min || 0;
+                        basePriceLabel = service.title;
+                        message.push(`   ${basePriceLabel}: ${formatPrice(basePriceCLP, basePriceUSD)}`);
+                    }
+                } else {
+                    // Sin nivel de detalle, usar precio base del servicio
+                    basePriceCLP = service.price_clp_min || 0;
+                    basePriceUSD = service.price_usd_min || 0;
+                    basePriceLabel = service.title;
+                    message.push(`   ${basePriceLabel}: ${formatPrice(basePriceCLP, basePriceUSD)}`);
+                }
+                
+                // Variante (tiene precio adicional)
+                if (commission.variantId) {
+                    const variant = variants.find(v => v.service_id === commission.serviceId && v.id === commission.variantId);
+                    if (variant) {
+                        message.push(`   Variante ${variant.variant_label}: ${formatPrice(variant.price_clp, variant.price_usd)}`);
                     }
                 }
-                message.push(`   Precio: ${formatPrice(commission.totalPriceCLP, commission.totalPriceUSD)}`);
+                
+                // Tema (sin precio, solo informativo)
+                if (commission.themeId) {
+                    const theme = themes.find(t => t.id === commission.themeId);
+                    if (theme) {
+                        message.push(`   Tema: ${theme.name}`);
+                    }
+                } else if (commission.customTheme) {
+                    message.push(`   Tema personalizado: ${commission.customTheme}`);
+                }
+                
+                // Extras generales (cada uno con su precio)
+                if (commission.extras.length > 0) {
+                    commission.extras.forEach((extraId: string) => {
+                        const extra = extras.find(e => e.id === extraId);
+                        if (extra) {
+                            message.push(`   Extra ${extra.title}: ${formatPrice(extra.price_clp, extra.price_usd)}`);
+                        }
+                    });
+                }
+                
+                // Personalización de emotes (para pack-emotes)
+                if (commission.emotesCustomization && commission.emotesCustomization.length > 0) {
+                    message.push("   Personalizacion de emotes:");
+                    commission.emotesCustomization.forEach((emote) => {
+                        message.push(`   Emote ${emote.emoteNumber}:`);
+                        if (emote.extras.length > 0) {
+                            emote.extras.forEach((extraId: string) => {
+                                const extra = extras.find(e => e.id === extraId);
+                                if (extra) {
+                                    message.push(`     Extra ${extra.title}: ${formatPrice(extra.price_clp, extra.price_usd)}`);
+                                }
+                            });
+                        } else {
+                            message.push(`     Sin extras`);
+                        }
+                    });
+                }
+                
                 message.push("");
             }
         });
 
         message.push(
-            `💰 Precio Total: ${formatPrice(totalCLP, totalUSD)}`,
+            `Total: ${formatPrice(totalCLP, totalUSD)}`,
             "",
-            "✅ Confirmo que leí tus reglas (No pido NSFW/Robots/Gore/Realismo).",
-            "Pago vía: BancoEstado / PayPal."
+            "Confirmo que lei tus reglas (No pido NSFW/Robots/Gore/Realismo).",
+            "Pago via: BancoEstado / PayPal."
         );
 
         const encodedMessage = encodeURIComponent(message.join('\n'));
