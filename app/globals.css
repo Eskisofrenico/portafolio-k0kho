@@ -1,26 +1,360 @@
 @import "tailwindcss";
 
+/* ============================================
+   Design Tokens - k0kho_ Portfolio
+   Estética: Cuaderno de dibujo / Sketchbook
+   ============================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Paleta Principal */
+  --paper-bg: #FFFDF6;
+  --grid-lines: #F2DEDE;
+  --text-main: #5D4037;
+  --accent: #E69A9A;
+
+  /* Semáforo de Reglas */
+  --green-allowed: #A3CFA1;
+  --green-allowed-dark: #8BC489;
+  --red-forbidden: #D87A7A;
+  --red-forbidden-dark: #C45555;
+
+  /* Otros */
+  --shadow-soft: rgba(93, 64, 55, 0.1);
+  --washi-tape: #F8E6C8;
+  --washi-tape-alt: #D4E8D8;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper: var(--paper-bg);
+  --color-grid: var(--grid-lines);
+  --color-text: var(--text-main);
+  --color-accent: var(--accent);
+  --color-green: var(--green-allowed);
+  --color-green-dark: var(--green-allowed-dark);
+  --color-red: var(--red-forbidden);
+  --color-red-dark: var(--red-forbidden-dark);
+  --color-washi: var(--washi-tape);
+  --color-washi-alt: var(--washi-tape-alt);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ============================================
+   Fondo de Cuaderno (Grid Pattern)
+   ============================================ */
+body {
+  background-color: var(--paper-bg);
+  color: var(--text-main);
+  font-family: var(--font-body), sans-serif;
+  background-image:
+    linear-gradient(var(--grid-lines) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-lines) 1px, transparent 1px);
+  background-size: 24px 24px;
+  min-height: 100vh;
+}
+
+/* ============================================
+   Tipografía
+   ============================================ */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-handwritten), cursive;
+  color: var(--text-main);
+}
+
+/* ============================================
+   Botones Estilo Mano Alzada
+   ============================================ */
+.btn-sketch {
+  border-radius: 8px 12px 10px 14px;
+  transition: all 0.2s ease;
+  box-shadow: 2px 3px 0 var(--shadow-soft);
+}
+
+.btn-sketch:hover {
+  transform: translateY(-2px);
+  box-shadow: 3px 5px 0 var(--shadow-soft);
+}
+
+.btn-sketch:active {
+  transform: translateY(0);
+  box-shadow: 1px 2px 0 var(--shadow-soft);
+}
+
+/* ============================================
+   Tarjetas con Bordes Irregulares
+   ============================================ */
+.card-sketch {
+  border-radius: 12px 8px 14px 10px;
+  box-shadow: 4px 4px 0 var(--shadow-soft);
+  background-color: white;
+  border: 2px solid var(--text-main);
+}
+
+/* ============================================
+   Efecto Washi Tape (Cinta Adhesiva)
+   ============================================ */
+.washi-tape {
+  position: relative;
+}
+
+.washi-tape::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-2deg);
+  width: 60px;
+  height: 20px;
+  background: var(--washi-tape);
+  opacity: 0.9;
+  border-radius: 2px;
+  box-shadow: 1px 1px 2px var(--shadow-soft);
+}
+
+.washi-tape:nth-child(even)::before {
+  background: var(--washi-tape-alt);
+  transform: translateX(-50%) rotate(2deg);
+}
+
+.washi-tape:nth-child(3n)::before {
+  background: var(--accent);
+  transform: translateX(-50%) rotate(-1deg);
+  opacity: 0.8;
+}
+
+/* ============================================
+   Toggle Switch de Moneda
+   ============================================ */
+.currency-toggle {
+  background: linear-gradient(135deg, var(--accent), #F2C6C6);
+  border-radius: 20px;
+  padding: 4px;
+  display: flex;
+  gap: 4px;
+}
+
+.currency-toggle button {
+  padding: 8px 16px;
+  border-radius: 16px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.currency-toggle button.active {
+  background: white;
+  box-shadow: 2px 2px 4px var(--shadow-soft);
+}
+
+.currency-toggle button:not(.active) {
+  background: transparent;
+  color: white;
+}
+
+/* ============================================
+   Sección de Reglas
+   ============================================ */
+.rules-allowed {
+  background: linear-gradient(135deg, var(--green-allowed), #C8E6C9);
+  border: 2px dashed var(--green-allowed-dark);
+}
+
+.rules-forbidden {
+  background: linear-gradient(135deg, var(--red-forbidden), #FFCDD2);
+  border: 2px dashed var(--red-forbidden-dark);
+}
+
+/* ============================================
+   Animaciones
+   ============================================ */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-6px);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes wiggle {
+
+  0%,
+  100% {
+    transform: rotate(-1deg);
+  }
+
+  50% {
+    transform: rotate(1deg);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+
+  70% {
+    transform: scale(1.1);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-wiggle {
+  animation: wiggle 3s ease-in-out infinite;
+}
+
+.animate-pop-in {
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  opacity: 0;
+}
+
+.animate-slide-left {
+  animation: slideInLeft 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-slide-right {
+  animation: slideInRight 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-fade-in {
+  animation: fadeInUp 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-fade-in-delay-1 {
+  animation: fadeInUp 0.8s ease-out 0.2s forwards;
+  opacity: 0;
+}
+
+.animate-fade-in-delay-2 {
+  animation: fadeInUp 0.8s ease-out 0.4s forwards;
+  opacity: 0;
+}
+
+.animate-fade-in-delay-3 {
+  animation: fadeInUp 0.8s ease-out 0.6s forwards;
+  opacity: 0;
+}
+
+/* Efecto Squish al click */
+.btn-sketch:active,
+.card-sketch:active,
+.whatsapp-btn:active {
+  transform: scale(0.95);
+  transition: transform 0.1s;
+}
+
+/* ============================================
+   WhatsApp Button
+   ============================================ */
+.whatsapp-btn {
+  background: linear-gradient(135deg, #25D366, #128C7E);
+  color: white;
+  font-weight: bold;
+  border-radius: 12px 8px 14px 10px;
+  box-shadow: 3px 4px 0 rgba(18, 140, 126, 0.3);
+  transition: all 0.2s ease;
+}
+
+.whatsapp-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 4px 6px 0 rgba(18, 140, 126, 0.3);
+}
+
+.whatsapp-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ============================================
+   Masonry Gallery
+   ============================================ */
+.masonry-grid {
+  column-count: 2;
+  column-gap: 24px;
+}
+
+@media (min-width: 768px) {
+  .masonry-grid {
+    column-count: 3;
+  }
+}
+
+.masonry-item {
+  break-inside: avoid;
+  margin-bottom: 24px;
+}
+
+/* ============================================
+   Scrollbar Personalizado
+   ============================================ */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--paper-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-main);
 }

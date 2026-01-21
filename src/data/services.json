@@ -1,0 +1,38 @@
+[
+    {
+        "id": "icon",
+        "title": "Icon",
+        "image": "/dibujo1.webp",
+        "priceCLP": 5000,
+        "priceUSD": 5,
+        "category": "Commission",
+        "description": "Avatar o icono para redes sociales"
+    },
+    {
+        "id": "chibi",
+        "title": "Chibi",
+        "image": "/dibujo2_1.webp",
+        "priceCLP": 10000,
+        "priceUSD": 10,
+        "category": "Commission",
+        "description": "Personaje en estilo chibi adorable"
+    },
+    {
+        "id": "halfbody",
+        "title": "Half Body",
+        "image": "/dibujo3.webp",
+        "priceCLP": 15000,
+        "priceUSD": 15,
+        "category": "Commission",
+        "description": "Ilustración de cintura hacia arriba"
+    },
+    {
+        "id": "fullbody",
+        "title": "Full Body",
+        "image": "/dibujo4_1.jpg",
+        "priceCLP": 25000,
+        "priceUSD": 25,
+        "category": "Commission",
+        "description": "Personaje de cuerpo completo"
+    }
+]
