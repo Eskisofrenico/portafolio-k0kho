@@ -8,6 +8,7 @@ import { useExtras } from '@/hooks/useExtras';
 import { useRules } from '@/hooks/useRules';
 import { useVariants } from '@/hooks/useVariants';
 import { useCommissionThemes } from '@/hooks/useCommissionThemes';
+import { useDetailLevels } from '@/hooks/useDetailLevels';
 import type { SelectedCommission } from '@/types';
 import type { Service as SupabaseService, Extra as SupabaseExtra, Rule, ServiceVariant, CommissionTheme } from '@/lib/supabase';
 
@@ -44,6 +45,7 @@ export default function CartButton({ selectedCommissions, onRemoveCommission, on
     const { rules: rulesData } = useRules();
     const { variants: allVariants } = useVariants(); // Obtener todas las variantes
     const { themes } = useCommissionThemes();
+    const { detailLevels } = useDetailLevels(); // Obtener todos los niveles de detalle
     
     // Convertir servicios de Supabase al formato esperado
     const typedServices: Service[] = supabaseServices.map((s: SupabaseService) => ({
@@ -131,8 +133,6 @@ export default function CartButton({ selectedCommissions, onRemoveCommission, on
         const lines: string[] = [
             'Hola k0kho!',
             `Vengo de tu web. Me interesa ${selectedCommissions.length > 1 ? 'las siguientes comisiones' : 'una comision'}:`,
-            '',
-            '--- COMISIONES ---',
             ''
         ];
 
@@ -140,52 +140,77 @@ export default function CartButton({ selectedCommissions, onRemoveCommission, on
             const service = typedServices.find(s => s.id === commission.serviceId);
             if (!service) return;
 
-            lines.push(`[${index + 1}] ${service.title}`);
-            lines.push('');
+            lines.push(`${index + 1}. ${service.title}`);
 
+            // Nivel de detalle con precio
             if (commission.detailLevel) {
-                const levelLabel = commission.detailLevel.charAt(0).toUpperCase() + commission.detailLevel.slice(1);
-                lines.push(`Nivel de Detalle: ${levelLabel}`);
-                lines.push('');
+                const level = detailLevels.find(l => l.service_id === commission.serviceId && l.level_name === commission.detailLevel);
+                if (level) {
+                    lines.push(`   ${level.level_label}: ${formatPrice(level.price_clp, level.price_usd)}`);
+                } else {
+                    // Fallback si no se encuentra el nivel
+                    const levelLabel = commission.detailLevel.charAt(0).toUpperCase() + commission.detailLevel.slice(1);
+                    lines.push(`   ${levelLabel}: ${formatPrice(service.priceCLP, service.priceUSD)}`);
+                }
+            } else {
+                // Sin nivel de detalle, mostrar precio base del servicio
+                lines.push(`   ${service.title}: ${formatPrice(service.priceCLP, service.priceUSD)}`);
             }
 
+            // Variante con precio
             if (commission.variantId) {
                 const variant = allVariants.find(v => v.id === commission.variantId);
                 if (variant) {
-                    lines.push(`Variante: ${variant.variant_label}`);
-                    lines.push('');
+                    lines.push(`   Variante ${variant.variant_label}: ${formatPrice(variant.price_clp, variant.price_usd)}`);
                 }
             }
 
+            // Tema (sin precio, solo informativo)
+            if (commission.themeId) {
+                const theme = themes.find(t => t.id === commission.themeId);
+                if (theme) {
+                    lines.push(`   Tema: ${theme.name}`);
+                }
+            } else if (commission.customTheme) {
+                lines.push(`   Tema personalizado: ${commission.customTheme}`);
+            }
+
+            // Extras con precio individual
             if (commission.extras.length > 0) {
-                const selectedExtrasList = commission.extras
-                    .map(extraId => typedExtras.find(e => e.id === extraId))
-                    .filter(Boolean) as Extra[];
-
-                if (selectedExtrasList.length > 0) {
-                    lines.push('Extras:');
-                    selectedExtrasList.forEach(extra => {
-                        lines.push(`  - ${extra.title}`);
-                    });
-                    lines.push('');
-                }
+                commission.extras.forEach((extraId: string) => {
+                    const extra = typedExtras.find(e => e.id === extraId);
+                    if (extra) {
+                        lines.push(`   Extra ${extra.title}: ${formatPrice(extra.priceCLP, extra.priceUSD)}`);
+                    }
+                });
             }
 
-            lines.push(`Precio: ${formatPrice(commission.totalPriceCLP, commission.totalPriceUSD)}`);
-            lines.push('');
-            lines.push('---');
+            // Personalización de emotes (para pack-emotes)
+            if (commission.emotesCustomization && commission.emotesCustomization.length > 0) {
+                lines.push('   Personalizacion de emotes:');
+                commission.emotesCustomization.forEach((emote) => {
+                    lines.push(`   Emote ${emote.emoteNumber}:`);
+                    if (emote.extras.length > 0) {
+                        emote.extras.forEach((extraId: string) => {
+                            const extra = typedExtras.find(e => e.id === extraId);
+                            if (extra) {
+                                lines.push(`     Extra ${extra.title}: ${formatPrice(extra.priceCLP, extra.priceUSD)}`);
+                            }
+                        });
+                    } else {
+                        lines.push(`     Sin extras`);
+                    }
+                });
+            }
+
             lines.push('');
         });
 
         lines.push(
-            'TOTAL GENERAL:',
-            formatPrice(totalCLP, totalUSD),
-            '',
-            '---',
+            `Total: ${formatPrice(totalCLP, totalUSD)}`,
             '',
             'Confirmo que lei tus reglas (No pido NSFW/Robots/Gore/Realismo).',
-            '',
-            'Metodo de pago: BancoEstado / PayPal.'
+            'Pago via: BancoEstado / PayPal.'
         );
 
         const encodedMessage = encodeURIComponent(lines.join('\n'));

@@ -499,9 +499,15 @@ export default function CommissionModal({ service, isOpen, onClose, onConfirm }:
                                         key={theme.id}
                                         type="button"
                                         onClick={() => {
-                                            setSelectedThemeId(theme.id);
-                                            setShowCustomThemeInput(false);
-                                            setCustomTheme('');
+                                            if (isSelected) {
+                                                // Si ya está seleccionado, deseleccionar
+                                                setSelectedThemeId('');
+                                            } else {
+                                                // Si no está seleccionado, seleccionar
+                                                setSelectedThemeId(theme.id);
+                                                setShowCustomThemeInput(false);
+                                                setCustomTheme('');
+                                            }
                                         }}
                                         className={`text-left card-sketch p-3 transition-all ${
                                             isSelected
