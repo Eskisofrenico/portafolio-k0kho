@@ -2,69 +2,111 @@
 
 import { useCurrency } from '@/context/CurrencyContext';
 import services from '@/data/services.json';
+import extras from '@/data/extras.json';
+import type { SelectedCommission } from '@/types';
+
+interface Extra {
+    id: string;
+    title: string;
+    icon: string;
+    priceCLP: number;
+    priceUSD: number;
+}
+
+interface Service {
+    id: string;
+    title: string;
+    priceCLP: number;
+    priceUSD: number;
+}
 
 interface WhatsAppButtonProps {
     isEnabled: boolean;
-    selectedServiceId: string | null;
+    selectedCommissions: SelectedCommission[];
 }
 
-export default function WhatsAppButton({ isEnabled, selectedServiceId }: WhatsAppButtonProps) {
-    const { currency, formatPrice } = useCurrency();
+export default function WhatsAppButton({ isEnabled, selectedCommissions }: WhatsAppButtonProps) {
+    const { formatPrice } = useCurrency();
 
-    // Número de WhatsApp - CAMBIAR POR EL REAL
-    const phoneNumber = '56912345678'; // TODO: Cambiar por el número real
+    // Número de WhatsApp
+    const phoneNumber = '56976420228';
 
-    const selectedService = services.find((s: any) => s.id === selectedServiceId);
+    // Calcular precio total de todas las comisiones
+    const calculateTotal = () => {
+        const totalCLP = selectedCommissions.reduce((sum, c) => sum + c.totalPriceCLP, 0);
+        const totalUSD = selectedCommissions.reduce((sum, c) => sum + c.totalPriceUSD, 0);
+        return { totalCLP, totalUSD };
+    };
+
+    const { totalCLP, totalUSD } = calculateTotal();
 
     const generateWhatsAppLink = () => {
-        const serviceName = selectedService?.title || 'una comisión';
-        const price = selectedService
-            ? formatPrice(selectedService.priceCLP, selectedService.priceUSD)
-            : 'a consultar';
+        if (selectedCommissions.length === 0) return '#';
 
-        const message = [
-            "Hola k0kho!",
-            `Vengo de tu web. Me interesa: ${serviceName}`,
-            `Precio visto: ${price}`,
+        let message = [
+            "Hola k0kho! 👋",
+            `Vengo de tu web. Me interesa ${selectedCommissions.length > 1 ? 'las siguientes comisiones' : 'una comisión'}:`,
+            ""
+        ];
+
+        // Listar cada comisión
+        selectedCommissions.forEach((commission, index) => {
+            const service = (services as Service[]).find(s => s.id === commission.serviceId);
+            if (service) {
+                message.push(`${index + 1}. ${service.title}`);
+                
+                if (commission.extras.length > 0) {
+                    const typedExtras = extras as Extra[];
+                    const selectedExtrasList = commission.extras.map((extraId: string) => {
+                        const extra = typedExtras.find(e => e.id === extraId);
+                        return extra ? `${extra.icon} ${extra.title}` : null;
+                    }).filter(Boolean);
+
+                    if (selectedExtrasList.length > 0) {
+                        message.push("   Extras:");
+                        selectedExtrasList.forEach(extra => {
+                            message.push(`   • ${extra}`);
+                        });
+                    }
+                }
+                message.push(`   Precio: ${formatPrice(commission.totalPriceCLP, commission.totalPriceUSD)}`);
+                message.push("");
+            }
+        });
+
+        message.push(
+            `💰 Precio Total: ${formatPrice(totalCLP, totalUSD)}`,
             "",
-            "Confirmo que leí tus reglas (No pido NSFW/Robots).",
+            "✅ Confirmo que leí tus reglas (No pido NSFW/Robots/Gore/Realismo).",
             "Pago vía: BancoEstado / PayPal."
-        ].join('\n');
+        );
 
-        const encodedMessage = encodeURIComponent(message);
+        const encodedMessage = encodeURIComponent(message.join('\n'));
         return `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
     };
+
 
     return (
         <section className="py-12 px-4">
             <div className="max-w-xl mx-auto text-center flex flex-col items-center">
-                {/* Info de servicio seleccionado */}
-                {selectedService && (
-                    <div className="card-sketch p-4 mb-6 inline-block">
-                        <p className="text-text/70">Servicio seleccionado:</p>
-                        <p className="text-xl font-bold text-accent">
-                            {selectedService.title} - {formatPrice(selectedService.priceCLP, selectedService.priceUSD)}
-                        </p>
-                    </div>
-                )}
-
-                {!selectedService && (
+                {selectedCommissions.length === 0 && (
                     <p className="text-text/60 mb-4">
-                        👆 Selecciona un servicio arriba para continuar
+                        👆 Selecciona un servicio arriba y agrégalo al carrito
                     </p>
                 )}
 
                 {/* Botón de WhatsApp */}
                 <a
-                    href={isEnabled && selectedService ? generateWhatsAppLink() : undefined}
+                    href={isEnabled && selectedCommissions.length > 0 ? generateWhatsAppLink() : '#'}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`whatsapp-btn inline-flex items-center gap-3 px-8 py-4 text-xl transition-all duration-300 ${!isEnabled || !selectedService
-                        ? 'pointer-events-none opacity-50 grayscale'
-                        : 'hover:scale-110 hover:shadow-xl animate-bounce-slow'
-                        }`}
+                    className={`whatsapp-btn inline-flex items-center gap-3 px-8 py-4 text-xl transition-all duration-300 ${
+                        !isEnabled || selectedCommissions.length === 0
+                            ? 'pointer-events-none opacity-50 grayscale'
+                            : 'hover:scale-110 hover:shadow-xl animate-bounce-slow'
+                    }`}
                     onClick={(e) => {
-                        if (!isEnabled || !selectedService) {
+                        if (!isEnabled || selectedCommissions.length === 0) {
                             e.preventDefault();
                         }
                     }}
@@ -74,9 +116,9 @@ export default function WhatsAppButton({ isEnabled, selectedServiceId }: WhatsAp
                     </svg>
                     {!isEnabled
                         ? 'Acepta las reglas primero ☝️'
-                        : !selectedService
+                        : selectedCommissions.length === 0
                             ? 'Selecciona un servicio ☝️'
-                            : '¡Contactar por WhatsApp!'}
+                            : `¡Contactar por WhatsApp! (${selectedCommissions.length})`}
                 </a>
 
                 {/* Mensajes de error específicos con animación */}
@@ -86,9 +128,14 @@ export default function WhatsAppButton({ isEnabled, selectedServiceId }: WhatsAp
                             ⚠️ Debes aceptar las reglas antes de contactar
                         </p>
                     )}
-                    {isEnabled && !selectedService && (
+                    {isEnabled && selectedCommissions.length === 0 && (
                         <p className="text-accent text-sm animate-pulse font-medium">
                             ✨ ¡Casi listo! Elige qué tipo de dibujo quieres arriba
+                        </p>
+                    )}
+                    {isEnabled && selectedCommissions.length > 0 && (
+                        <p className="text-green-dark text-sm font-medium">
+                            ✅ Revisa tu carrito antes de contactar
                         </p>
                     )}
                 </div>

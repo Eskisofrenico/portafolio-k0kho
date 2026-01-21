@@ -1,0 +1,68 @@
+[
+    {
+        "id": "accesories",
+        "title": "Accesorios Extras",
+        "description": "Sombreros, joyas, accesorios de pelo, etc.",
+        "icon": "💍",
+        "priceCLP": 3000,
+        "priceUSD": 4
+    },
+    {
+        "id": "simple-background",
+        "title": "Fondo Simple",
+        "description": "Fondo sólido o degradado simple",
+        "icon": "🎨",
+        "priceCLP": 2000,
+        "priceUSD": 3
+    },
+    {
+        "id": "pattern-background",
+        "title": "Fondo con Patrón",
+        "description": "Fondo con textura o patrón decorativo",
+        "icon": "🖼️",
+        "priceCLP": 4000,
+        "priceUSD": 5
+    },
+    {
+        "id": "extra-character",
+        "title": "Personaje Adicional",
+        "description": "Agregar un segundo personaje (solo para Half/Full Body)",
+        "icon": "👥",
+        "priceCLP": 15000,
+        "priceUSD": 20,
+        "onlyFor": ["halfbody", "fullbody"]
+    },
+    {
+        "id": "detailed-clothing",
+        "title": "Ropa Detallada",
+        "description": "Ropa con más detalles, texturas o patrones complejos",
+        "icon": "👗",
+        "priceCLP": 4000,
+        "priceUSD": 5,
+        "onlyFor": ["halfbody", "fullbody"]
+    },
+    {
+        "id": "expression-variation",
+        "title": "Variación de Expresión",
+        "description": "Agregar una expresión facial alternativa",
+        "icon": "😊",
+        "priceCLP": 2000,
+        "priceUSD": 3
+    },
+    {
+        "id": "glow-effect",
+        "title": "Efecto Glow/Mágico",
+        "description": "Efectos de brillo o mágicos alrededor del personaje",
+        "icon": "✨",
+        "priceCLP": 3000,
+        "priceUSD": 4
+    },
+    {
+        "id": "pet-companion",
+        "title": "Mascota/Compañero",
+        "description": "Agregar una mascota o compañero pequeño",
+        "icon": "🐾",
+        "priceCLP": 5000,
+        "priceUSD": 7
+    }
+]
