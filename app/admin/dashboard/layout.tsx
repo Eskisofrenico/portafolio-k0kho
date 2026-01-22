@@ -98,10 +98,11 @@ export default function DashboardLayout({
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 h-full w-full md:w-64 bg-white border-r-2 border-[var(--sketch-border)] shadow-lg z-30 transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed left-0 top-0 h-full w-full md:w-64 bg-white border-r-2 border-[var(--sketch-border)] shadow-lg z-30 transition-transform duration-300 ease-in-out flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
       >
-        <div className="p-6 border-b-2 border-gray-200 relative">
+        {/* Header fijo */}
+        <div className="p-6 border-b-2 border-gray-200 relative flex-shrink-0">
           <button
             onClick={() => setSidebarOpen(false)}
             className="absolute top-4 right-4 bg-white border-2 border-[var(--sketch-border)] rounded-lg p-1.5 shadow-md hover:bg-gray-50 transition-all"
@@ -118,7 +119,8 @@ export default function DashboardLayout({
           <p className="text-sm text-gray-500 mt-1">k0kho_ Portfolio</p>
         </div>
 
-        <nav className="p-4 space-y-2">
+        {/* Navegación con scroll */}
+        <nav className="flex-1 overflow-y-auto p-4 space-y-2">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             const handleLinkClick = () => {
@@ -144,7 +146,8 @@ export default function DashboardLayout({
           })}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t-2 border-gray-200">
+        {/* Botones fijos en la parte inferior */}
+        <div className="p-4 border-t-2 border-gray-200 flex-shrink-0">
           <a
             href="/"
             target="_blank"
