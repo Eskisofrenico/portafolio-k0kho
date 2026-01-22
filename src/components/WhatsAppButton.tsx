@@ -18,16 +18,80 @@ export default function WhatsAppButton({ isEnabled, selectedCommissions }: Whats
     const { services } = useServices();
     const { extras } = useExtras();
     const { themes } = useCommissionThemes();
-    const { detailLevels } = useDetailLevels(); // Obtener todos los niveles
-    const { variants } = useVariants(); // Obtener todas las variantes
+    const { detailLevels } = useDetailLevels();
+    const { variants } = useVariants();
 
     // Número de WhatsApp
     const phoneNumber = '56976420228';
 
-    // Calcular precio total de todas las comisiones
+    // Calcular precio de una comisión individual usando datos actuales de la BD
+    const calculateCommissionPrice = (commission: SelectedCommission) => {
+        let priceCLP = 0;
+        let priceUSD = 0;
+
+        const service = services.find(s => s.id === commission.serviceId);
+        if (!service) return { priceCLP: 0, priceUSD: 0 };
+
+        // Precio base del nivel de detalle o servicio
+        if (commission.detailLevel) {
+            const level = detailLevels.find(l => l.service_id === commission.serviceId && l.level_name === commission.detailLevel);
+            if (level) {
+                priceCLP += level.price_clp;
+                priceUSD += level.price_usd;
+            } else {
+                priceCLP += service.price_clp_min || 0;
+                priceUSD += service.price_usd_min || 0;
+            }
+        } else {
+            priceCLP += service.price_clp_min || 0;
+            priceUSD += service.price_usd_min || 0;
+        }
+
+        // Precio de variante
+        if (commission.variantId) {
+            const variant = variants.find(v => v.id === commission.variantId);
+            if (variant) {
+                priceCLP += variant.price_clp;
+                priceUSD += variant.price_usd;
+            }
+        }
+
+        // Precio de extras generales
+        commission.extras.forEach((extraId: string) => {
+            const extra = extras.find(e => e.id === extraId);
+            if (extra) {
+                priceCLP += extra.price_clp;
+                priceUSD += extra.price_usd;
+            }
+        });
+
+        // Precio de extras de emotes
+        if (commission.emotesCustomization) {
+            commission.emotesCustomization.forEach((emote) => {
+                emote.extras.forEach((extraId: string) => {
+                    const extra = extras.find(e => e.id === extraId);
+                    if (extra) {
+                        priceCLP += extra.price_clp;
+                        priceUSD += extra.price_usd;
+                    }
+                });
+            });
+        }
+
+        return { priceCLP, priceUSD };
+    };
+
+    // Calcular precio total de todas las comisiones con precios actualizados
     const calculateTotal = () => {
-        const totalCLP = selectedCommissions.reduce((sum, c) => sum + c.totalPriceCLP, 0);
-        const totalUSD = selectedCommissions.reduce((sum, c) => sum + c.totalPriceUSD, 0);
+        let totalCLP = 0;
+        let totalUSD = 0;
+
+        selectedCommissions.forEach(commission => {
+            const { priceCLP, priceUSD } = calculateCommissionPrice(commission);
+            totalCLP += priceCLP;
+            totalUSD += priceUSD;
+        });
+
         return { totalCLP, totalUSD };
     };
 
@@ -47,12 +111,12 @@ export default function WhatsAppButton({ isEnabled, selectedCommissions }: Whats
             const service = services.find(s => s.id === commission.serviceId);
             if (service) {
                 message.push(`${index + 1}. ${service.title}`);
-                
+
                 // Calcular precio base
                 let basePriceCLP = 0;
                 let basePriceUSD = 0;
                 let basePriceLabel = '';
-                
+
                 // Nivel de detalle (tiene precio)
                 if (commission.detailLevel) {
                     const level = detailLevels.find(l => l.service_id === commission.serviceId && l.level_name === commission.detailLevel);
@@ -75,7 +139,7 @@ export default function WhatsAppButton({ isEnabled, selectedCommissions }: Whats
                     basePriceLabel = service.title;
                     message.push(`   ${basePriceLabel}: ${formatPrice(basePriceCLP, basePriceUSD)}`);
                 }
-                
+
                 // Variante (tiene precio adicional)
                 if (commission.variantId) {
                     const variant = variants.find(v => v.service_id === commission.serviceId && v.id === commission.variantId);
@@ -83,7 +147,7 @@ export default function WhatsAppButton({ isEnabled, selectedCommissions }: Whats
                         message.push(`   Variante ${variant.variant_label}: ${formatPrice(variant.price_clp, variant.price_usd)}`);
                     }
                 }
-                
+
                 // Tema (sin precio, solo informativo)
                 if (commission.themeId) {
                     const theme = themes.find(t => t.id === commission.themeId);
@@ -93,7 +157,7 @@ export default function WhatsAppButton({ isEnabled, selectedCommissions }: Whats
                 } else if (commission.customTheme) {
                     message.push(`   Tema personalizado: ${commission.customTheme}`);
                 }
-                
+
                 // Extras generales (cada uno con su precio)
                 if (commission.extras.length > 0) {
                     commission.extras.forEach((extraId: string) => {
@@ -103,7 +167,7 @@ export default function WhatsAppButton({ isEnabled, selectedCommissions }: Whats
                         }
                     });
                 }
-                
+
                 // Personalización de emotes (para pack-emotes)
                 if (commission.emotesCustomization && commission.emotesCustomization.length > 0) {
                     message.push("   Personalizacion de emotes:");
@@ -121,7 +185,7 @@ export default function WhatsAppButton({ isEnabled, selectedCommissions }: Whats
                         }
                     });
                 }
-                
+
                 message.push("");
             }
         });
@@ -152,11 +216,10 @@ export default function WhatsAppButton({ isEnabled, selectedCommissions }: Whats
                     href={isEnabled && selectedCommissions.length > 0 ? generateWhatsAppLink() : '#'}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`whatsapp-btn inline-flex items-center gap-3 px-8 py-4 text-xl transition-all duration-300 ${
-                        !isEnabled || selectedCommissions.length === 0
+                    className={`whatsapp-btn inline-flex items-center gap-3 px-8 py-4 text-xl transition-all duration-300 ${!isEnabled || selectedCommissions.length === 0
                             ? 'pointer-events-none opacity-50 grayscale'
                             : 'hover:scale-110 hover:shadow-xl animate-bounce-slow'
-                    }`}
+                        }`}
                     onClick={(e) => {
                         if (!isEnabled || selectedCommissions.length === 0) {
                             e.preventDefault();

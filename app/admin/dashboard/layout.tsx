@@ -24,7 +24,7 @@ export default function DashboardLayout({
         setSidebarOpen(true);
       }
     };
-    
+
     handleResize(); // Ejecutar al montar
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -68,6 +68,7 @@ export default function DashboardLayout({
     { href: '/admin/dashboard/testimonials', label: 'Testimonios', icon: '⭐' },
     { href: '/admin/dashboard/emotes', label: 'Config Emotes', icon: '😊' },
     { href: '/admin/dashboard/themes', label: 'Temas/Festivos', icon: '🎉' },
+    { href: '/admin/dashboard/settings', label: 'Configuración', icon: '⚙️' },
   ];
 
   return (
@@ -97,9 +98,8 @@ export default function DashboardLayout({
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 h-full w-full md:w-64 bg-white border-r-2 border-[var(--sketch-border)] shadow-lg z-30 transition-transform duration-300 ease-in-out ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed left-0 top-0 h-full w-full md:w-64 bg-white border-r-2 border-[var(--sketch-border)] shadow-lg z-30 transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         <div className="p-6 border-b-2 border-gray-200 relative">
           <button
@@ -132,11 +132,10 @@ export default function DashboardLayout({
                 key={item.href}
                 href={item.href}
                 onClick={handleLinkClick}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg font-nunito transition-all ${
-                  isActive
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg font-nunito transition-all ${isActive
                     ? 'bg-[#E69A9A] text-white shadow-md sidebar-active-item hover:bg-[#D88A8A]'
                     : 'hover:bg-pink-50 text-gray-700'
-                }`}
+                  }`}
               >
                 <span className="text-xl">{item.icon}</span>
                 <span className="font-semibold">{item.label}</span>
@@ -165,9 +164,8 @@ export default function DashboardLayout({
 
       {/* Main Content */}
       <main
-        className={`p-4 md:p-8 transition-all duration-300 ease-in-out ${
-          sidebarOpen ? 'md:ml-64 ml-0' : 'ml-0'
-        }`}
+        className={`p-4 md:p-8 transition-all duration-300 ease-in-out ${sidebarOpen ? 'md:ml-64 ml-0' : 'ml-0'
+          }`}
       >
         {children}
       </main>

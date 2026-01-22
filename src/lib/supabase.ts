@@ -43,6 +43,7 @@ export type GalleryItem = {
   service_type: string;
   order_index: number;
   is_visible: boolean;
+  group_id: string | null;
   created_at: string;
 };
 
@@ -131,6 +132,15 @@ export type CommissionTheme = {
   description: string | null;
   is_available: boolean;
   order_index: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SiteSettings = {
+  id: string;
+  key: string;
+  value: string;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 };

@@ -1,12 +1,16 @@
 'use client';
 
 import { useCurrency } from '@/context/CurrencyContext';
+import AnnouncementBanner from './AnnouncementBanner';
 
 export default function Header() {
     const { currency, setCurrency } = useCurrency();
 
     return (
         <header className="sticky top-0 z-50 bg-paper/90 backdrop-blur-sm border-b-2 border-dashed border-accent/30">
+            {/* Banner de anuncio animado */}
+            <AnnouncementBanner />
+
             <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
                 {/* Logo / Avatar */}
                 <div className="flex items-center gap-3">
@@ -38,3 +42,4 @@ export default function Header() {
         </header>
     );
 }
+

@@ -44,6 +44,7 @@ interface Work {
     title: string;
     type: string;
     description?: string;
+    groupId?: string | null;
 }
 
 export default function Gallery({ onAddCommission, selectedCommissions }: GalleryProps) {
@@ -72,6 +73,7 @@ export default function Gallery({ onAddCommission, selectedCommissions }: Galler
         title: g.title || 'Sin título',
         type: g.service_type || 'General',
         description: g.description,
+        groupId: g.group_id,
     }));
 
     // Convertir extras de Supabase al formato esperado
@@ -82,6 +84,7 @@ export default function Gallery({ onAddCommission, selectedCommissions }: Galler
         priceUSD: e.price_usd,
     }));
     const [selectedWork, setSelectedWork] = useState<Work | null>(null);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [selectedServiceForModal, setSelectedServiceForModal] = useState<Service | null>(null);
     const [mounted, setMounted] = useState(false);
     const [showToast, setShowToast] = useState(false);
@@ -89,6 +92,75 @@ export default function Gallery({ onAddCommission, selectedCommissions }: Galler
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    // Obtener todas las imágenes del mismo grupo que el trabajo seleccionado
+    const getRelatedImages = (work: Work): Work[] => {
+        if (!work.groupId) {
+            // Si no tiene groupId, solo devuelve el trabajo mismo
+            return [work];
+        }
+        // Filtrar todas las imágenes que tienen el mismo groupId
+        return typedGallery.filter(g => g.groupId === work.groupId);
+    };
+
+    // Obtener el índice del trabajo seleccionado dentro de su grupo
+    const getWorkIndexInGroup = (work: Work): number => {
+        const relatedImages = getRelatedImages(work);
+        return relatedImages.findIndex(w => w.id === work.id);
+    };
+
+    const openWorkModal = (work: Work) => {
+        setSelectedWork(work);
+        const index = getWorkIndexInGroup(work);
+        setCurrentImageIndex(index >= 0 ? index : 0);
+        document.body.style.overflow = 'hidden';
+    };
+
+    const closeWorkModal = () => {
+        setSelectedWork(null);
+        setCurrentImageIndex(0);
+        document.body.style.overflow = 'unset';
+    };
+
+    // Navegar a la imagen anterior
+    const goToPreviousImage = () => {
+        if (!selectedWork) return;
+        const relatedImages = getRelatedImages(selectedWork);
+        setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : relatedImages.length - 1));
+    };
+
+    // Navegar a la imagen siguiente
+    const goToNextImage = () => {
+        if (!selectedWork) return;
+        const relatedImages = getRelatedImages(selectedWork);
+        setCurrentImageIndex((prev) => (prev < relatedImages.length - 1 ? prev + 1 : 0));
+    };
+
+    // Manejar navegación con teclado
+    useEffect(() => {
+        if (!selectedWork) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                e.preventDefault();
+                // Calcular imágenes relacionadas dentro del handler
+                const relatedImages = selectedWork.groupId
+                    ? typedGallery.filter(g => g.groupId === selectedWork.groupId)
+                    : [selectedWork];
+                
+                if (e.key === 'ArrowLeft') {
+                    setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : relatedImages.length - 1));
+                } else {
+                    setCurrentImageIndex((prev) => (prev < relatedImages.length - 1 ? prev + 1 : 0));
+                }
+            } else if (e.key === 'Escape') {
+                closeWorkModal();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selectedWork, typedGallery]);
 
     // Mostrar loading mientras se cargan los datos
     if (servicesLoading || galleryLoading || extrasLoading) {
@@ -101,16 +173,6 @@ export default function Gallery({ onAddCommission, selectedCommissions }: Galler
             </section>
         );
     }
-
-    const openWorkModal = (work: Work) => {
-        setSelectedWork(work);
-        document.body.style.overflow = 'hidden';
-    };
-
-    const closeWorkModal = () => {
-        setSelectedWork(null);
-        document.body.style.overflow = 'unset';
-    };
 
     const openCommissionModal = (service: Service) => {
         setSelectedServiceForModal(service);
@@ -170,7 +232,7 @@ export default function Gallery({ onAddCommission, selectedCommissions }: Galler
 
         // Mostrar notificación
         setShowToast(true);
-        
+
         // Ejecutar callback para limpiar el modal (si existe)
         if (showNotification) {
             showNotification();
@@ -181,7 +243,7 @@ export default function Gallery({ onAddCommission, selectedCommissions }: Galler
         <section className="py-4 md:py-12 px-4 animate-fade-in-delay-1">
             <div className="max-w-6xl mx-auto relative">
                 {/* Personaje decorativo (solo escritorio) - Alineado con la card de Full Body sin cubrirla */}
-                <div 
+                <div
                     className="hidden lg:block pointer-events-none select-none absolute top-[-6.16rem] right-[-6rem] z-20 opacity-95 transform -translate-y-1/2"
                     style={{
                         maskImage: 'linear-gradient(to bottom, black 90%, transparent 100%)',
@@ -214,11 +276,10 @@ export default function Gallery({ onAddCommission, selectedCommissions }: Galler
                                 key={service.id}
                                 onClick={() => openCommissionModal(service)}
                                 style={{ animationDelay: `${index * 150}ms` }}
-                                className={`card-sketch p-4 text-center transition-all cursor-pointer relative animate-pop-in ${
-                                    isSelected
+                                className={`card-sketch p-4 text-center transition-all cursor-pointer relative animate-pop-in ${isSelected
                                         ? 'ring-4 ring-accent scale-105 bg-accent/5'
                                         : 'hover:scale-102'
-                                }`}
+                                    }`}
                             >
                                 {/* Indicador Check Verde con contador */}
                                 {isSelected && (
@@ -239,14 +300,14 @@ export default function Gallery({ onAddCommission, selectedCommissions }: Galler
                                         alt={service.title}
                                         className="object-cover w-full h-full"
                                     />
-                                {/* Overlay Seleccionado */}
-                                {isSelected && (
-                                    <div className="absolute inset-0 bg-accent/20 flex items-center justify-center animate-fade-in">
-                                        <span className="bg-white/95 text-accent font-bold px-3 py-1 rounded-full shadow-lg text-sm transform -rotate-6 border-2 border-accent/20">
-                                            {selectedCount > 1 ? `¡${selectedCount} seleccionadas!` : '¡Seleccionado!'}
-                                        </span>
-                                    </div>
-                                )}
+                                    {/* Overlay Seleccionado */}
+                                    {isSelected && (
+                                        <div className="absolute inset-0 bg-accent/20 flex items-center justify-center animate-fade-in">
+                                            <span className="bg-white/95 text-accent font-bold px-3 py-1 rounded-full shadow-lg text-sm transform -rotate-6 border-2 border-accent/20">
+                                                {selectedCount > 1 ? `¡${selectedCount} seleccionadas!` : '¡Seleccionado!'}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                                 <h3 className="font-bold text-lg mb-1">{service.title}</h3>
                                 <p className="text-accent font-bold">
@@ -309,59 +370,136 @@ export default function Gallery({ onAddCommission, selectedCommissions }: Galler
             />
 
             {/* Modal de Trabajo */}
-            {mounted && selectedWork && createPortal(
-                <div
-                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
-                    onClick={closeWorkModal}
-                >
-                    <div
-                        className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto card-sketch p-0 relative animate-scale-in"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <button
-                            onClick={closeWorkModal}
-                            className="absolute top-4 right-4 z-10 bg-white/80 hover:bg-white text-text rounded-full p-2 transition-colors shadow-sm"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                        </button>
+            {mounted && selectedWork && (() => {
+                const relatedImages = getRelatedImages(selectedWork);
+                const currentImage = relatedImages[currentImageIndex] || selectedWork;
+                const hasMultipleImages = relatedImages.length > 1;
 
-                        <div className="grid md:grid-cols-2 gap-0">
-                            <div className="relative w-full min-h-[300px] md:min-h-[500px] bg-gray-100">
-                                <Image
-                                    src={selectedWork.image}
-                                    alt={selectedWork.title}
-                                    fill
-                                    sizes="(max-width: 768px) 100vw, 50vw"
-                                    className="object-contain"
-                                />
-                            </div>
-                            <div className="p-8 flex flex-col justify-center">
-                                <span className="text-accent font-bold mb-2 uppercase tracking-wider text-sm">{selectedWork.type}</span>
-                                <h3 className="text-3xl font-bold mb-4 text-text">{selectedWork.title}</h3>
-                                <p className="text-text/80 leading-relaxed text-lg mb-6">
-                                    {selectedWork.description || "Sin descripción disponible."}
-                                </p>
-                                
-                                {/* Testimonios Relacionados */}
-                                <WorkTestimonials workId={selectedWork.id} />
-                                
-                                <div className="mt-auto pt-6 border-t border-dashed border-gray-300">
-                                    <button
-                                        onClick={closeWorkModal}
-                                        className="w-full py-3 bg-accent text-text font-bold rounded-lg hover:bg-accent/90 transition-colors shadow-md"
-                                    >
-                                        Cerrar
-                                    </button>
+                return createPortal(
+                    <div
+                        className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+                        onClick={closeWorkModal}
+                    >
+                        <div
+                            className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto card-sketch p-0 relative animate-scale-in"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <button
+                                onClick={closeWorkModal}
+                                className="absolute top-4 right-4 z-10 bg-white/80 hover:bg-white text-text rounded-full p-2 transition-colors shadow-sm"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+
+                            <div className="grid md:grid-cols-2 gap-0">
+                                <div className="relative w-full min-h-[300px] md:min-h-[500px] bg-gray-100">
+                                    {/* Botón Anterior */}
+                                    {hasMultipleImages && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                goToPreviousImage();
+                                            }}
+                                            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-white text-text rounded-full p-3 transition-all shadow-lg hover:scale-110"
+                                            aria-label="Imagen anterior"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <polyline points="15 18 9 12 15 6"></polyline>
+                                            </svg>
+                                        </button>
+                                    )}
+
+                                    {/* Imagen Actual */}
+                                    <Image
+                                        src={currentImage.image}
+                                        alt={currentImage.title}
+                                        fill
+                                        sizes="(max-width: 768px) 100vw, 50vw"
+                                        className="object-contain"
+                                    />
+
+                                    {/* Botón Siguiente */}
+                                    {hasMultipleImages && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                goToNextImage();
+                                            }}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-white text-text rounded-full p-3 transition-all shadow-lg hover:scale-110"
+                                            aria-label="Imagen siguiente"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <polyline points="9 18 15 12 9 6"></polyline>
+                                            </svg>
+                                        </button>
+                                    )}
+
+                                    {/* Indicador de posición */}
+                                    {hasMultipleImages && (
+                                        <div className={`absolute left-1/2 -translate-x-1/2 z-20 bg-black/60 text-white px-4 py-2 rounded-full text-sm font-bold backdrop-blur-sm ${
+                                            relatedImages.length <= 6 ? 'bottom-20' : 'bottom-4'
+                                        }`}>
+                                            {currentImageIndex + 1} / {relatedImages.length}
+                                        </div>
+                                    )}
+
+                                    {/* Miniaturas (opcional, en la parte inferior) */}
+                                    {hasMultipleImages && relatedImages.length <= 6 && (
+                                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+                                            {relatedImages.map((img, idx) => (
+                                                <button
+                                                    key={img.id}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setCurrentImageIndex(idx);
+                                                    }}
+                                                    className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 transition-all ${
+                                                        idx === currentImageIndex
+                                                            ? 'border-accent scale-110 shadow-lg'
+                                                            : 'border-white/50 hover:border-white/80 opacity-70 hover:opacity-100'
+                                                    }`}
+                                                    aria-label={`Ver imagen ${idx + 1}`}
+                                                >
+                                                    <Image
+                                                        src={img.image}
+                                                        alt={img.title}
+                                                        fill
+                                                        className="object-cover"
+                                                        sizes="48px"
+                                                    />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="p-8 flex flex-col justify-center">
+                                    <span className="text-accent font-bold mb-2 uppercase tracking-wider text-sm">{currentImage.type}</span>
+                                    <h3 className="text-3xl font-bold mb-4 text-text">{currentImage.title}</h3>
+                                    <p className="text-text/80 leading-relaxed text-lg mb-6">
+                                        {currentImage.description || "Sin descripción disponible."}
+                                    </p>
+
+                                    {/* Testimonios Relacionados */}
+                                    <WorkTestimonials workId={currentImage.id} />
+
+                                    <div className="mt-auto pt-6 border-t border-dashed border-gray-300">
+                                        <button
+                                            onClick={closeWorkModal}
+                                            className="w-full py-3 bg-accent text-text font-bold rounded-lg hover:bg-accent/90 transition-colors shadow-md"
+                                        >
+                                            Cerrar
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>,
-                document.body
-            )}
+                    </div>,
+                    document.body
+                );
+            })()}
         </section>
     );
 }
@@ -391,11 +529,10 @@ function WorkTestimonials({ workId }: { workId: string }) {
                                     <svg
                                         key={star}
                                         xmlns="http://www.w3.org/2000/svg"
-                                        className={`h-3 w-3 ${
-                                            star <= testimonial.rating
+                                        className={`h-3 w-3 ${star <= testimonial.rating
                                                 ? 'text-yellow-400 fill-current'
                                                 : 'text-gray-300'
-                                        }`}
+                                            }`}
                                         viewBox="0 0 20 20"
                                         fill="currentColor"
                                     >

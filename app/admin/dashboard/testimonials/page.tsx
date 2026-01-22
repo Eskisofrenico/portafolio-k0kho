@@ -176,11 +176,10 @@ export default function TestimonialsPage() {
         {testimonials.map((testimonial) => (
           <div
             key={testimonial.id}
-            className={`rounded-lg border-2 shadow-lg p-6 transition-all ${
-              testimonial.is_visible
+            className={`rounded-lg border-2 shadow-lg p-6 transition-all ${testimonial.is_visible
                 ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-300 hover:border-yellow-400'
                 : 'bg-gray-50 border-gray-300 opacity-60'
-            }`}
+              }`}
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
@@ -199,11 +198,10 @@ export default function TestimonialsPage() {
                     <svg
                       key={star}
                       xmlns="http://www.w3.org/2000/svg"
-                      className={`h-5 w-5 ${
-                        star <= testimonial.rating
+                      className={`h-5 w-5 ${star <= testimonial.rating
                           ? 'text-yellow-400 fill-current'
                           : 'text-gray-300'
-                      }`}
+                        }`}
                       viewBox="0 0 20 20"
                       fill="currentColor"
                     >
@@ -227,21 +225,19 @@ export default function TestimonialsPage() {
             <div className="flex gap-2 mb-4">
               <button
                 onClick={() => handleToggleVisibility(testimonial)}
-                className={`flex-1 py-2 px-4 rounded-lg font-nunito font-bold text-sm transition-all ${
-                  testimonial.is_visible
+                className={`flex-1 py-2 px-4 rounded-lg font-nunito font-bold text-sm transition-all ${testimonial.is_visible
                     ? 'bg-green-500 hover:bg-green-600 text-white'
                     : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
-                }`}
+                  }`}
               >
                 {testimonial.is_visible ? '👁️ Visible' : '🚫 Oculto'}
               </button>
               <button
                 onClick={() => handleToggleFeatured(testimonial)}
-                className={`flex-1 py-2 px-4 rounded-lg font-nunito font-bold text-sm transition-all ${
-                  testimonial.is_featured
+                className={`flex-1 py-2 px-4 rounded-lg font-nunito font-bold text-sm transition-all ${testimonial.is_featured
                     ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
                     : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
-                }`}
+                  }`}
               >
                 {testimonial.is_featured ? '⭐ Destacado' : '⭐ Marcar Destacado'}
               </button>
@@ -322,18 +318,29 @@ function TestimonialEditModal({
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
-      onClick={onCancel}
     >
-      <div 
-        className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border-2 border-[var(--sketch-border)] shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+      <div
+        className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border-2 border-[var(--sketch-border)] shadow-2xl relative"
       >
         <div className="sticky top-0 bg-white border-b-2 border-gray-200 p-6 z-10">
-          <h3 className="font-patrick text-2xl text-[var(--sketch-border)]">
-            {isCreating ? 'Crear Nuevo Testimonio' : `Editar: ${testimonial.client_name}`}
-          </h3>
+          <div className="flex items-start justify-between">
+            <h3 className="font-patrick text-2xl text-[var(--sketch-border)]">
+              {isCreating ? 'Crear Nuevo Testimonio' : `Editar: ${testimonial.client_name}`}
+            </h3>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="ml-4 text-gray-500 hover:text-gray-700 transition-colors p-1 rounded-full hover:bg-gray-100"
+              aria-label="Cerrar"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
@@ -363,11 +370,10 @@ function TestimonialEditModal({
                   key={star}
                   type="button"
                   onClick={() => setFormData({ ...formData, rating: star })}
-                  className={`h-10 w-10 ${
-                    star <= formData.rating
+                  className={`h-10 w-10 ${star <= formData.rating
                       ? 'text-yellow-400 fill-current'
                       : 'text-gray-300'
-                  } hover:scale-110 transition-transform`}
+                    } hover:scale-110 transition-transform`}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -467,8 +473,8 @@ function TestimonialEditModal({
           <div className="flex gap-4 pt-4 border-t-2 border-gray-200">
             <button
               type="button"
-              onClick={onCancel}
               className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-all font-nunito font-bold"
+              onClick={onCancel}
             >
               Cancelar
             </button>

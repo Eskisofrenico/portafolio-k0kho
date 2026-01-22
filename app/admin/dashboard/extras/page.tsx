@@ -165,11 +165,10 @@ export default function ExtrasPage() {
         {extras.map((extra) => (
           <div
             key={extra.id}
-            className={`rounded-lg border-2 shadow-lg p-6 transition-all ${
-              extra.is_available
+            className={`rounded-lg border-2 shadow-lg p-6 transition-all ${extra.is_available
                 ? 'bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-300 hover:border-blue-400'
                 : 'bg-gray-50 border-gray-300 opacity-60'
-            }`}
+              }`}
           >
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-3 flex-1">
@@ -180,11 +179,10 @@ export default function ExtrasPage() {
               </div>
               <button
                 onClick={() => handleToggleAvailability(extra)}
-                className={`px-3 py-1 rounded-lg font-nunito font-bold text-xs transition-all ${
-                  extra.is_available
+                className={`px-3 py-1 rounded-lg font-nunito font-bold text-xs transition-all ${extra.is_available
                     ? 'bg-green-100 text-green-700 hover:bg-green-200'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 {extra.is_available ? '✅' : '❌'}
               </button>
@@ -281,14 +279,23 @@ function DeleteConfirmModal({
   useModal(true);
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
-      onClick={onCancel}
     >
-      <div 
-        className="bg-white rounded-lg max-w-md w-full border-2 border-[var(--sketch-border)] shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+      <div
+        className="bg-white rounded-lg max-w-md w-full border-2 border-[var(--sketch-border)] shadow-2xl relative"
       >
+        <button
+          type="button"
+          onClick={onCancel}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors p-1 rounded-full hover:bg-gray-100 z-10"
+          aria-label="Cerrar"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
         <div className="p-6">
           {/* Icono de Advertencia */}
           <div className="flex justify-center mb-4">
@@ -330,8 +337,8 @@ function DeleteConfirmModal({
           <div className="flex gap-3">
             <button
               type="button"
-              onClick={onCancel}
               className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-all font-nunito font-bold"
+              onClick={onCancel}
             >
               Cancelar
             </button>
@@ -400,18 +407,29 @@ function ExtraEditModal({
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-      onClick={onCancel}
     >
-      <div 
-        className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border-2 border-[var(--sketch-border)] shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+      <div
+        className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border-2 border-[var(--sketch-border)] shadow-2xl relative"
       >
         <div className="sticky top-0 bg-white border-b-2 border-gray-200 p-6 z-10">
-          <h2 className="font-patrick text-3xl text-[var(--sketch-border)]">
-            {isCreating ? 'Crear Nuevo Extra' : `Editar: ${extra.title}`}
-          </h2>
+          <div className="flex items-start justify-between">
+            <h2 className="font-patrick text-3xl text-[var(--sketch-border)]">
+              {isCreating ? 'Crear Nuevo Extra' : `Editar: ${extra.title}`}
+            </h2>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="ml-4 text-gray-500 hover:text-gray-700 transition-colors p-1 rounded-full hover:bg-gray-100"
+              aria-label="Cerrar"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
@@ -523,8 +541,8 @@ function ExtraEditModal({
           <div className="flex gap-4 pt-4 border-t-2 border-gray-200">
             <button
               type="button"
-              onClick={onCancel}
               className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-all font-nunito font-bold"
+              onClick={onCancel}
             >
               Cancelar
             </button>

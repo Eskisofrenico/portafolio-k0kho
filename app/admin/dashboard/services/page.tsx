@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase, type Service, type DetailLevel, type ServiceVariant } from '@/lib/supabase'; 
+import { supabase, type Service, type DetailLevel, type ServiceVariant } from '@/lib/supabase';
 import { useModal } from '@/hooks/useModal';
 import Image from 'next/image';
 
@@ -87,8 +87,8 @@ export default function ServicesPage() {
   }
 
   async function handleSave(
-    formData: Partial<Service>, 
-    levels?: Partial<DetailLevel>[], 
+    formData: Partial<Service>,
+    levels?: Partial<DetailLevel>[],
     variants?: Partial<ServiceVariant>[]
   ) {
     if (!editingService) return;
@@ -232,11 +232,10 @@ export default function ServicesPage() {
         {services.map((service) => (
           <div
             key={service.id}
-            className={`rounded-lg border-2 shadow-lg p-6 transition-all ${
-              service.is_available
-                ? 'bg-gradient-to-br from-pink-50 to-purple-50 border-pink-300 hover:border-pink-400'
-                : 'bg-gray-50 border-gray-300 opacity-60'
-            }`}
+            className={`rounded-lg border-2 shadow-lg p-6 transition-all ${service.is_available
+              ? 'bg-gradient-to-br from-pink-50 to-purple-50 border-pink-300 hover:border-pink-400'
+              : 'bg-gray-50 border-gray-300 opacity-60'
+              }`}
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
@@ -247,11 +246,10 @@ export default function ServicesPage() {
               </div>
               <button
                 onClick={() => handleToggleAvailability(service)}
-                className={`px-4 py-2 rounded-lg font-nunito font-bold text-sm transition-all ${
-                  service.is_available
-                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                className={`px-4 py-2 rounded-lg font-nunito font-bold text-sm transition-all ${service.is_available
+                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
               >
                 {service.is_available ? '✅ Disponible' : '❌ No disponible'}
               </button>
@@ -381,11 +379,11 @@ function LevelFormInline({
       alert('Por favor, completa los campos requeridos (Nombre y Etiqueta)');
       return;
     }
-    
+
     const recommendationsArray = formData.recommendations
       ? formData.recommendations.split(',').map(r => r.trim()).filter(r => r.length > 0)
       : [];
-    
+
     onSave({
       ...formData,
       recommendations: recommendationsArray,
@@ -541,8 +539,8 @@ function LevelFormInline({
         <div className="flex gap-2 pt-2">
           <button
             type="button"
-            onClick={onCancel}
             className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 rounded text-sm font-nunito font-bold hover:bg-gray-100"
+            onClick={onCancel}
           >
             Cancelar
           </button>
@@ -604,7 +602,7 @@ function VariantFormInline({
       alert('Por favor, completa los campos requeridos (Nombre y Etiqueta)');
       return;
     }
-    
+
     onSave({
       ...formData,
       description: formData.description || null,
@@ -745,8 +743,8 @@ function VariantFormInline({
         <div className="flex gap-2 pt-2">
           <button
             type="button"
-            onClick={onCancel}
             className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 rounded text-sm font-nunito font-bold hover:bg-gray-100"
+            onClick={onCancel}
           >
             Cancelar
           </button>
@@ -790,12 +788,31 @@ function ServiceEditModal({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  
+
+  // Estados para categorías existentes
+  const [existingCategories, setExistingCategories] = useState<string[]>([]);
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
+  const [newCategory, setNewCategory] = useState('');
+
   // Estados para niveles y variantes (solo al crear)
   const [levels, setLevels] = useState<Partial<DetailLevel>[]>([]);
   const [variants, setVariants] = useState<Partial<ServiceVariant>[]>([]);
   const [editingLevelIndex, setEditingLevelIndex] = useState<number | null>(null);
   const [editingVariantIndex, setEditingVariantIndex] = useState<number | null>(null);
+
+  // Cargar categorías existentes
+  useEffect(() => {
+    async function fetchCategories() {
+      const { data } = await supabase
+        .from('services')
+        .select('category');
+      if (data) {
+        const uniqueCategories = [...new Set(data.map(s => s.category).filter(Boolean))];
+        setExistingCategories(uniqueCategories);
+      }
+    }
+    fetchCategories();
+  }, []);
 
   // Funciones para formatear números con separadores de miles
   const formatNumber = (num: number): string => {
@@ -831,7 +848,7 @@ function ServiceEditModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validar que haya imagen al crear nuevo servicio
     if (isCreating && !selectedFile && !formData.image) {
       alert('Por favor, selecciona una imagen para el servicio');
@@ -847,7 +864,7 @@ function ServiceEditModal({
       if (selectedFile) {
         const fileExt = selectedFile.name.split('.').pop();
         const fileName = `service-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        
+
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('gallery-images')
           .upload(fileName, selectedFile);
@@ -916,10 +933,10 @@ function ServiceEditModal({
   const handleCancelLevel = (index: number) => {
     const level = levels[index];
     // Si el nivel está vacío (nuevo y sin guardar), eliminarlo
-    const isEmpty = !level.level_name && !level.level_label && 
-                    (!level.price_clp || level.price_clp === 0) && 
-                    (!level.price_usd || level.price_usd === 0);
-    
+    const isEmpty = !level.level_name && !level.level_label &&
+      (!level.price_clp || level.price_clp === 0) &&
+      (!level.price_usd || level.price_usd === 0);
+
     if (isEmpty) {
       handleRemoveLevel(index);
     } else {
@@ -959,10 +976,10 @@ function ServiceEditModal({
   const handleCancelVariant = (index: number) => {
     const variant = variants[index];
     // Si la variante está vacía (nueva y sin guardar), eliminarla
-    const isEmpty = !variant.variant_name && !variant.variant_label && 
-                    (!variant.price_clp || variant.price_clp === 0) && 
-                    (!variant.price_usd || variant.price_usd === 0);
-    
+    const isEmpty = !variant.variant_name && !variant.variant_label &&
+      (!variant.price_clp || variant.price_clp === 0) &&
+      (!variant.price_usd || variant.price_usd === 0);
+
     if (isEmpty) {
       handleRemoveVariant(index);
     } else {
@@ -971,18 +988,29 @@ function ServiceEditModal({
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-      onClick={onCancel}
     >
-      <div 
-        className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border-2 border-[var(--sketch-border)] shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+      <div
+        className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border-2 border-[var(--sketch-border)] shadow-2xl relative"
       >
         <div className="sticky top-0 bg-white border-b-2 border-gray-200 p-6 z-10">
-          <h2 className="font-patrick text-3xl text-[var(--sketch-border)]">
-            {isCreating ? 'Crear Nuevo Servicio' : `Editar: ${service.title}`}
-          </h2>
+          <div className="flex items-start justify-between">
+            <h2 className="font-patrick text-3xl text-[var(--sketch-border)]">
+              {isCreating ? 'Crear Nuevo Servicio' : `Editar: ${service.title}`}
+            </h2>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="ml-4 text-gray-500 hover:text-gray-700 transition-colors p-1 rounded-full hover:bg-gray-100"
+              aria-label="Cerrar"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
@@ -1043,13 +1071,65 @@ function ServiceEditModal({
             <label className="block text-sm font-nunito font-bold text-gray-700 mb-2">
               Categoría
             </label>
-            <input
-              type="text"
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-[var(--sketch-border)] focus:outline-none"
-              required
-            />
+            {showNewCategoryInput ? (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-[var(--sketch-border)] focus:outline-none"
+                  placeholder="Nueva categoría..."
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newCategory.trim()) {
+                      setFormData({ ...formData, category: newCategory.trim() });
+                      setExistingCategories([...existingCategories, newCategory.trim()]);
+                      setShowNewCategoryInput(false);
+                      setNewCategory('');
+                    }
+                  }}
+                  className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-nunito font-bold"
+                >
+                  ✓
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowNewCategoryInput(false);
+                    setNewCategory('');
+                  }}
+                  className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-lg font-nunito font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-[var(--sketch-border)] focus:outline-none bg-white"
+                  required
+                >
+                  <option value="">Seleccionar categoría...</option>
+                  {existingCategories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setShowNewCategoryInput(true)}
+                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-nunito font-bold text-sm"
+                  title="Agregar nueva categoría"
+                >
+                  + Nueva
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Descripción */}
@@ -1141,10 +1221,10 @@ function ServiceEditModal({
                   ➕ Agregar Nivel
                 </button>
               </div>
-              
+
               {levels.length === 0 ? (
                 <p className="text-gray-500 text-sm font-nunito italic">
-                  No hay niveles agregados. Agrega al menos uno para completar el servicio.
+                  No hay niveles agregados. (Opcional)
                 </p>
               ) : (
                 <div className="space-y-4">
@@ -1180,10 +1260,10 @@ function ServiceEditModal({
                   ➕ Agregar Variante
                 </button>
               </div>
-              
+
               {variants.length === 0 ? (
                 <p className="text-gray-500 text-sm font-nunito italic">
-                  No hay variantes agregadas. Agrega al menos una para completar el servicio.
+                  No hay variantes agregadas. (Opcional)
                 </p>
               ) : (
                 <div className="space-y-4">
@@ -1208,14 +1288,14 @@ function ServiceEditModal({
           <div className="flex gap-4 pt-4 border-t-2 border-gray-200">
             <button
               type="button"
-              onClick={onCancel}
               className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-all font-nunito font-bold"
+              onClick={onCancel}
             >
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={uploading || (isCreating && levels.length === 0) || (isCreating && variants.length === 0)}
+              disabled={uploading}
               className="flex-1 px-6 py-3 bg-[#E69A9A] hover:bg-[#D88A8A] text-white rounded-lg transition-all font-nunito font-bold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {uploading ? '⏳ Subiendo...' : isCreating ? '➕ Crear Servicio Completo' : '💾 Guardar Cambios'}
@@ -1365,13 +1445,11 @@ function DetailLevelsModal({
   }
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
     >
-      <div 
+      <div
         className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto border-2 border-[var(--sketch-border)] shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white border-b-2 border-gray-200 p-6 z-10">
           <div className="flex items-center justify-between">
@@ -1382,8 +1460,10 @@ function DetailLevelsModal({
               <p className="text-sm text-gray-600 mt-1">Gestiona los niveles Simple, Detallado y Premium</p>
             </div>
             <button
+              type="button"
               onClick={onClose}
               className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors"
+              aria-label="Cerrar"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -1569,7 +1649,7 @@ function LevelEditModal({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  
+
   // Si estamos editando, no permitir cambiar el nombre del nivel
   const isEditing = !isCreating;
 
@@ -1631,7 +1711,7 @@ function LevelEditModal({
       if (selectedFile) {
         const fileExt = selectedFile.name.split('.').pop();
         const fileName = `level-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        
+
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('gallery-images')
           .upload(fileName, selectedFile);
@@ -1651,7 +1731,7 @@ function LevelEditModal({
         : [];
 
       // Asegurar que level_name esté definido
-      const finalLevelName = selectedLevelOption === 'new' 
+      const finalLevelName = selectedLevelOption === 'new'
         ? newLevelName.trim().toLowerCase().replace(/\s+/g, '-')
         : formData.level_name;
 
@@ -1661,7 +1741,7 @@ function LevelEditModal({
         return;
       }
 
-      onSave({ 
+      onSave({
         ...formData,
         level_name: finalLevelName,
         example_image: imageUrl || null,
@@ -1677,13 +1757,11 @@ function LevelEditModal({
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4"
-      onClick={onCancel}
     >
-      <div 
+      <div
         className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border-2 border-[var(--sketch-border)] shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white border-b-2 border-gray-200 p-6 z-10">
           <h3 className="font-patrick text-2xl text-[var(--sketch-border)]">
@@ -1720,7 +1798,7 @@ function LevelEditModal({
                   ))}
                   <option value="new">➕ Agregar Nuevo Nivel</option>
                 </select>
-                
+
                 {/* Input para nuevo nivel */}
                 {selectedLevelOption === 'new' && (
                   <div className="mt-3">
@@ -1879,8 +1957,8 @@ function LevelEditModal({
           <div className="flex gap-4 pt-4 border-t-2 border-gray-200">
             <button
               type="button"
-              onClick={onCancel}
               className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-all font-nunito font-bold"
+              onClick={onCancel}
             >
               Cancelar
             </button>
@@ -2031,13 +2109,11 @@ function VariantsModal({
   }
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
     >
-      <div 
+      <div
         className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto border-2 border-[var(--sketch-border)] shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white border-b-2 border-gray-200 p-6 z-10">
           <div className="flex items-center justify-between">
@@ -2048,7 +2124,6 @@ function VariantsModal({
               <p className="text-sm text-gray-600 mt-1">Gestiona las variantes de este servicio (vistas, estilos, etc.)</p>
             </div>
             <button
-              onClick={onClose}
               className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -2197,7 +2272,7 @@ function VariantEditModal({
   const [newVariantName, setNewVariantName] = useState<string>(
     isCreating ? '' : variant.variant_name
   );
-  
+
   // Si estamos editando, no permitir cambiar el nombre de la variante
   const isEditing = !isCreating;
   const [formData, setFormData] = useState({
@@ -2270,7 +2345,7 @@ function VariantEditModal({
       if (selectedFile) {
         const fileExt = selectedFile.name.split('.').pop();
         const fileName = `variant-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        
+
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('gallery-images')
           .upload(fileName, selectedFile);
@@ -2291,7 +2366,7 @@ function VariantEditModal({
       }
 
       // Asegurar que variant_name esté definido
-      const finalVariantName = selectedVariantOption === 'new' 
+      const finalVariantName = selectedVariantOption === 'new'
         ? newVariantName.trim().toLowerCase().replace(/\s+/g, '-')
         : formData.variant_name;
 
@@ -2311,13 +2386,11 @@ function VariantEditModal({
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4"
-      onClick={onCancel}
     >
-      <div 
+      <div
         className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border-2 border-[var(--sketch-border)] shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white border-b-2 border-gray-200 p-6 z-10">
           <h3 className="font-patrick text-2xl text-[var(--sketch-border)]">
@@ -2354,7 +2427,7 @@ function VariantEditModal({
                   ))}
                   <option value="new">➕ Agregar Nueva Variante</option>
                 </select>
-                
+
                 {/* Input para nueva variante */}
                 {selectedVariantOption === 'new' && (
                   <div className="mt-3">
@@ -2481,8 +2554,8 @@ function VariantEditModal({
           <div className="flex gap-4 pt-4 border-t-2 border-gray-200">
             <button
               type="button"
-              onClick={onCancel}
               className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-all font-nunito font-bold"
+              onClick={onCancel}
             >
               Cancelar
             </button>
@@ -2512,13 +2585,11 @@ function DeleteLevelConfirmModal({
   useModal(true);
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4"
-      onClick={onCancel}
     >
-      <div 
+      <div
         className="bg-white rounded-lg max-w-md w-full border-2 border-[var(--sketch-border)] shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6">
           {/* Icono de Advertencia */}
@@ -2561,8 +2632,8 @@ function DeleteLevelConfirmModal({
           <div className="flex gap-3">
             <button
               type="button"
-              onClick={onCancel}
               className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-all font-nunito font-bold"
+              onClick={onCancel}
             >
               Cancelar
             </button>
@@ -2592,13 +2663,11 @@ function DeleteVariantConfirmModal({
   useModal(true);
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4"
-      onClick={onCancel}
     >
-      <div 
+      <div
         className="bg-white rounded-lg max-w-md w-full border-2 border-[var(--sketch-border)] shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6">
           {/* Icono de Advertencia */}
@@ -2641,8 +2710,8 @@ function DeleteVariantConfirmModal({
           <div className="flex gap-3">
             <button
               type="button"
-              onClick={onCancel}
               className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-all font-nunito font-bold"
+              onClick={onCancel}
             >
               Cancelar
             </button>
