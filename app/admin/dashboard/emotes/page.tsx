@@ -12,6 +12,7 @@ export default function EmotesConfigPage() {
   const [activeTab, setActiveTab] = useState<'config' | 'availability'>('config');
   const [editingConfig, setEditingConfig] = useState<EmoteConfig | null>(null);
   const [showConfigForm, setShowConfigForm] = useState(false);
+  const [configToDelete, setConfigToDelete] = useState<EmoteConfig | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -54,28 +55,14 @@ export default function EmotesConfigPage() {
     if (!editingConfig) return;
 
     try {
-      let previewImageUrl = formData.preview_image;
-
-      // If there's a new image file, upload it to Supabase storage
-      if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `emote-${formData.emote_number}-${Date.now()}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('gallery-images')
-          .upload(fileName, imageFile);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage.from('gallery-images').getPublicUrl(fileName);
-        previewImageUrl = publicUrl;
-      }
-
       if (editingConfig.id) {
         // Actualizar
         const { error } = await supabase
           .from('emote_config')
-          .update({ ...formData, preview_image: previewImageUrl })
+          .update({ 
+            ...formData, 
+            preview_image: null 
+          })
           .eq('id', editingConfig.id);
 
         if (error) throw error;
@@ -88,7 +75,7 @@ export default function EmotesConfigPage() {
             emote_number: formData.emote_number!,
             custom_label: formData.custom_label || null,
             description: formData.description || null,
-            preview_image: previewImageUrl || null,
+            preview_image: null,
             is_active: formData.is_active !== undefined ? formData.is_active : true,
             order_index: formData.order_index || 0,
           });
@@ -102,6 +89,32 @@ export default function EmotesConfigPage() {
     } catch (error) {
       console.error('Error saving config:', error);
       alert('Error al guardar la configuración');
+    }
+  }
+
+  async function handleConfirmDelete() {
+    if (!configToDelete) return;
+
+    try {
+      // Eliminar la configuración
+      const { error } = await supabase
+        .from('emote_config')
+        .delete()
+        .eq('id', configToDelete.id);
+
+      if (error) throw error;
+
+      // También eliminar las disponibilidades de extras relacionadas
+      await supabase
+        .from('emote_extra_availability')
+        .delete()
+        .eq('emote_number', configToDelete.emote_number);
+
+      setConfigToDelete(null);
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting config:', error);
+      alert('Error al eliminar la configuración');
     }
   }
 
@@ -297,15 +310,24 @@ export default function EmotesConfigPage() {
                   </p>
                 )}
 
-                <button
-                  onClick={() => {
-                    setEditingConfig(config);
-                    setShowConfigForm(true);
-                  }}
-                  className="w-full bg-[#E69A9A] hover:bg-[#D88A8A] text-white font-nunito font-bold py-2 rounded-lg transition-all text-sm shadow-md"
-                >
-                  ✏️ Editar
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setEditingConfig(config);
+                      setShowConfigForm(true);
+                    }}
+                    className="flex-1 bg-[#E69A9A] hover:bg-[#D88A8A] text-white font-nunito font-bold py-2 rounded-lg transition-all text-sm shadow-md"
+                  >
+                    ✏️ Editar
+                  </button>
+                  <button
+                    onClick={() => setConfigToDelete(config)}
+                    className="bg-red-500 hover:bg-red-600 text-white font-nunito font-bold py-2 px-4 rounded-lg transition-all text-sm shadow-md hover:shadow-lg"
+                    title="Eliminar configuración"
+                  >
+                    🗑️
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -418,6 +440,15 @@ export default function EmotesConfigPage() {
           }}
         />
       )}
+
+      {/* Modal de Confirmación de Eliminación */}
+      {configToDelete && (
+        <DeleteConfirmModal
+          config={configToDelete}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setConfigToDelete(null)}
+        />
+      )}
     </div>
   );
 }
@@ -436,31 +467,10 @@ function ConfigEditModal({
     emote_number: config.emote_number,
     custom_label: config.custom_label || '',
     description: config.description || '',
-    preview_image: config.preview_image || '',
     is_active: config.is_active,
     order_index: config.order_index,
   });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>(config.preview_image || '');
   const [saving, setSaving] = useState(false);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleRemoveImage = () => {
-    setImageFile(null);
-    setImagePreview('');
-    setFormData({ ...formData, preview_image: '' });
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -470,9 +480,9 @@ function ConfigEditModal({
         ...formData,
         custom_label: formData.custom_label || null,
         description: formData.description || null,
-        preview_image: formData.preview_image || null,
+        preview_image: null,
       },
-      imageFile || undefined
+      undefined
     );
     setSaving(false);
   };
@@ -482,12 +492,25 @@ function ConfigEditModal({
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
     >
       <div
-        className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border-2 border-[var(--sketch-border)] shadow-2xl"
+        className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border-2 border-[var(--sketch-border)] shadow-2xl relative"
       >
         <div className="p-6 border-b-2 border-gray-200">
-          <h3 className="font-patrick text-2xl text-[var(--sketch-border)]">
-            {config.id ? 'Editar Configuración' : 'Nueva Configuración'}
-          </h3>
+          <div className="flex items-start justify-between">
+            <h3 className="font-patrick text-2xl text-[var(--sketch-border)]">
+              {config.id ? 'Editar Configuración' : 'Nueva Configuración'}
+            </h3>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="ml-4 text-gray-500 hover:text-gray-700 transition-colors p-1 rounded-full hover:bg-gray-100"
+              aria-label="Cerrar"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -534,48 +557,6 @@ function ConfigEditModal({
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-nunito font-bold text-gray-700 mb-2">
-              Imagen de Preview
-            </label>
-            {imagePreview ? (
-              <div className="relative inline-block">
-                <img
-                  src={imagePreview}
-                  alt="Preview del emote"
-                  className="w-32 h-32 object-cover rounded-lg border-2 border-gray-300"
-                />
-                <button
-                  type="button"
-                  onClick={handleRemoveImage}
-                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-sm shadow-lg"
-                  title="Quitar imagen"
-                >
-                  ✕
-                </button>
-              </div>
-            ) : (
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:bg-gray-50 transition-colors">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  id="emote-image-upload"
-                />
-                <label
-                  htmlFor="emote-image-upload"
-                  className="cursor-pointer block"
-                >
-                  <span className="text-4xl mb-2 block">🖼️</span>
-                  <span className="text-gray-600 font-nunito text-sm">
-                    Click para seleccionar una imagen
-                  </span>
-                </label>
-              </div>
-            )}
-          </div>
-
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-2">
               <input
@@ -591,6 +572,7 @@ function ConfigEditModal({
           <div className="flex gap-3 pt-4">
             <button
               type="button"
+              onClick={onCancel}
               disabled={saving}
               className="flex-1 py-2 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 font-nunito font-bold rounded-lg transition-all disabled:opacity-50"
             >
@@ -605,6 +587,95 @@ function ConfigEditModal({
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+function DeleteConfirmModal({
+  config,
+  onConfirm,
+  onCancel,
+}: {
+  config: EmoteConfig;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  useModal(true);
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+    >
+      <div
+        className="bg-white rounded-lg max-w-md w-full border-2 border-[var(--sketch-border)] shadow-2xl relative"
+      >
+        <button
+          type="button"
+          onClick={onCancel}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors p-1 rounded-full hover:bg-gray-100 z-10"
+          aria-label="Cerrar"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+        <div className="p-6">
+          {/* Icono de Advertencia */}
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-10 w-10 text-red-600"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Título */}
+          <h3 className="font-patrick text-2xl text-[var(--sketch-border)] text-center mb-4">
+            ¿Estás seguro?
+          </h3>
+
+          {/* Mensaje */}
+          <div className="text-center mb-6">
+            <p className="text-gray-700 font-nunito mb-2">
+              Estás a punto de eliminar la configuración de emote:
+            </p>
+            <p className="text-red-600 font-bold text-lg font-nunito mb-2">
+              {config.custom_label || `Emote #${config.emote_number}`}
+            </p>
+            <p className="text-gray-600 text-sm font-nunito">
+              Esta acción no se puede deshacer.
+            </p>
+          </div>
+
+          {/* Botones */}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-all font-nunito font-bold"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={onConfirm}
+              className="flex-1 px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all font-nunito font-bold shadow-md hover:shadow-lg"
+            >
+              Sí, eliminar
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

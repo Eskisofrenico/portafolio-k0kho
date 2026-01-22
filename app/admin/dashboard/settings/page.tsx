@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase, type SiteSettings } from '@/lib/supabase';
+import { createPortal } from 'react-dom';
 
 export default function SiteSettingsPage() {
     const [announcementMessage, setAnnouncementMessage] = useState('');
@@ -9,8 +10,13 @@ export default function SiteSettingsPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [existingId, setExistingId] = useState<string | null>(null);
+    const [showNotification, setShowNotification] = useState(false);
+    const [notificationMessage, setNotificationMessage] = useState('');
+    const [notificationType, setNotificationType] = useState<'success' | 'error'>('success');
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        setMounted(true);
         fetchSettings();
     }, []);
 
@@ -66,10 +72,14 @@ export default function SiteSettingsPage() {
                 if (error) throw error;
                 if (data) setExistingId(data.id);
             }
-            alert('¡Configuración guardada correctamente!');
+            setNotificationMessage('¡Configuración guardada correctamente!');
+            setNotificationType('success');
+            setShowNotification(true);
         } catch (error) {
             console.error('Error saving:', error);
-            alert('Error al guardar la configuración');
+            setNotificationMessage('Error al guardar la configuración');
+            setNotificationType('error');
+            setShowNotification(true);
         } finally {
             setSaving(false);
         }
@@ -175,6 +185,109 @@ export default function SiteSettingsPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Notificación */}
+            {mounted && showNotification && (
+                <NotificationToast
+                    message={notificationMessage}
+                    type={notificationType}
+                    onClose={() => setShowNotification(false)}
+                />
+            )}
         </div>
+    );
+}
+
+function NotificationToast({
+    message,
+    type,
+    onClose,
+}: {
+    message: string;
+    type: 'success' | 'error';
+    onClose: () => void;
+}) {
+    useEffect(() => {
+        if (message) {
+            const timer = setTimeout(() => {
+                onClose();
+            }, 3000); // Cerrar después de 3 segundos
+
+            return () => clearTimeout(timer);
+        }
+    }, [message, onClose]);
+
+    const isSuccess = type === 'success';
+    const borderColor = isSuccess ? 'border-green-500' : 'border-red-500';
+    const iconBg = isSuccess ? 'bg-green-100' : 'bg-red-100';
+    const iconColor = isSuccess ? 'text-green-600' : 'text-red-600';
+
+    return createPortal(
+        <div className="fixed top-4 right-4 z-[10001] animate-slide-right">
+            <div
+                className={`bg-white rounded-lg shadow-lg border-l-4 ${borderColor} px-4 py-3 flex items-center gap-3 backdrop-blur-sm min-w-[300px] max-w-[400px]`}
+                style={{
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05)'
+                }}
+            >
+                <div className={`${iconBg} rounded-full p-1.5 flex-shrink-0`}>
+                    {isSuccess ? (
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className={`h-5 w-5 ${iconColor}`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M5 13l4 4L19 7"
+                            />
+                        </svg>
+                    ) : (
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className={`h-5 w-5 ${iconColor}`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M6 18L18 6M6 6l12 12"
+                            />
+                        </svg>
+                    )}
+                </div>
+                <span className="font-nunito font-semibold text-sm text-gray-700 flex-1">
+                    {message}
+                </span>
+                <button
+                    onClick={onClose}
+                    className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+                    aria-label="Cerrar"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M6 18L18 6M6 6l12 12"
+                        />
+                    </svg>
+                </button>
+            </div>
+        </div>,
+        document.body
     );
 }
