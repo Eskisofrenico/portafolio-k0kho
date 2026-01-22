@@ -292,7 +292,7 @@ export default function CommissionModal({ service, isOpen, onClose, onConfirm }:
                             </h3>
                             
                             {/* Comparación Visual Lado a Lado */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4 items-stretch">
                                 {detailLevels.map((level) => {
                                     const isSelected = selectedDetailLevel === level.level_name;
                                     return (
@@ -303,7 +303,7 @@ export default function CommissionModal({ service, isOpen, onClose, onConfirm }:
                                                 // Si está seleccionado, desmarcarlo; si no, marcarlo
                                                 setSelectedDetailLevel(isSelected ? '' : level.level_name);
                                             }}
-                                            className={`text-left card-sketch p-4 transition-all ${
+                                            className={`text-left card-sketch p-4 transition-all flex flex-col h-full ${
                                                 isSelected
                                                     ? 'ring-2 ring-accent bg-accent/10 scale-[1.02]'
                                                     : 'hover:scale-[1.01] hover:shadow-md'
@@ -342,48 +342,64 @@ export default function CommissionModal({ service, isOpen, onClose, onConfirm }:
                                                 </div>
                                             </div>
                                             
-                                            {/* Qué Incluye */}
-                                            {level.includes && (
-                                                <div className="mb-3">
-                                                    <p className="text-xs font-semibold text-text/60 mb-1">
-                                                        Incluye:
-                                                    </p>
-                                                    <p className="text-xs text-text/80 leading-relaxed">
-                                                        {level.includes}
-                                                    </p>
+                                            {/* Imagen de Ejemplo - Solo se muestra si hay imagen */}
+                                            {level.example_image && (
+                                                <div className="relative w-full h-40 bg-gray-100 rounded-lg overflow-hidden mb-3">
+                                                    <Image
+                                                        src={level.example_image}
+                                                        alt={level.level_label}
+                                                        fill
+                                                        className="object-cover"
+                                                        unoptimized
+                                                    />
                                                 </div>
                                             )}
                                             
-                                            {/* Recomendaciones */}
-                                            {(() => {
-                                                // Asegurar que recommendations sea un array válido
-                                                const recommendations = Array.isArray(level.recommendations) 
-                                                    ? level.recommendations 
-                                                    : level.recommendations 
-                                                        ? [level.recommendations] 
-                                                        : [];
+                                            {/* Contenedor de contenido que se expande */}
+                                            <div className="flex-1 flex flex-col">
+                                                {/* Qué Incluye */}
+                                                {level.includes && (
+                                                    <div className="mb-3">
+                                                        <p className="text-xs font-semibold text-text/60 mb-1">
+                                                            Incluye:
+                                                        </p>
+                                                        <p className="text-xs text-text/80 leading-relaxed">
+                                                            {level.includes}
+                                                        </p>
+                                                    </div>
+                                                )}
                                                 
-                                                if (recommendations.length > 0) {
-                                                    return (
-                                                        <div>
-                                                            <p className="text-xs font-semibold text-text/60 mb-1">
-                                                                Recomendado para:
-                                                            </p>
-                                                            <div className="flex flex-wrap gap-1">
-                                                                {recommendations.map((rec, idx) => (
-                                                                    <span
-                                                                        key={idx}
-                                                                        className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded"
-                                                                    >
-                                                                        {rec}
-                                                                    </span>
-                                                                ))}
+                                                {/* Recomendaciones */}
+                                                {(() => {
+                                                    // Asegurar que recommendations sea un array válido
+                                                    const recommendations = Array.isArray(level.recommendations) 
+                                                        ? level.recommendations 
+                                                        : level.recommendations 
+                                                            ? [level.recommendations] 
+                                                            : [];
+                                                    
+                                                    if (recommendations.length > 0) {
+                                                        return (
+                                                            <div className="flex-1">
+                                                                <p className="text-xs font-semibold text-text/60 mb-1">
+                                                                    Recomendado para:
+                                                                </p>
+                                                                <div className="flex flex-wrap gap-1">
+                                                                    {recommendations.map((rec, idx) => (
+                                                                        <span
+                                                                            key={idx}
+                                                                            className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded"
+                                                                        >
+                                                                            {rec}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    );
-                                                }
-                                                return null;
-                                            })()}
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()}
+                                            </div>
                                         </button>
                                     );
                                 })}
@@ -411,8 +427,8 @@ export default function CommissionModal({ service, isOpen, onClose, onConfirm }:
                                                     : 'hover:scale-[1.01] hover:shadow-md'
                                             }`}
                                         >
-                                            {/* Preview de la Variante */}
-                                            <div className="relative h-32 bg-gray-100 rounded-lg overflow-hidden mb-3">
+                                            {/* Preview de la Variante - Aumentado 20% (de h-32 a h-40) */}
+                                            <div className="relative h-40 bg-gray-100 rounded-lg overflow-hidden mb-3">
                                                 <Image
                                                     src={variant.preview_image}
                                                     alt={variant.variant_label}
